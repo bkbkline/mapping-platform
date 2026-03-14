@@ -36,7 +36,7 @@ function getZoningDescription(zoning: string | null): string {
 function getDevelopmentPotential(parcel: Parcel): string {
   const acreage = parcel.acreage ?? 0;
   const zoning = parcel.zoning ?? 'Unknown';
-  const landUse = parcel.land_use ?? 'unspecified land use';
+  const landUse = parcel.land_use_code ?? 'unspecified land use';
 
   const sizeDesc =
     acreage >= 40
@@ -69,14 +69,15 @@ function getDevelopmentPotential(parcel: Parcel): string {
 function getInfrastructureAccess(parcel: Parcel): string {
   const parts: string[] = [];
 
-  if (parcel.flood_zone) {
+  const floodZone = parcel.raw_attributes?.flood_zone as string | undefined;
+  if (floodZone) {
     const highRisk = ['A', 'AE', 'AH', 'AO', 'V', 'VE'].includes(
-      parcel.flood_zone.toUpperCase()
+      floodZone.toUpperCase()
     );
     parts.push(
       highRisk
-        ? `The parcel is located in FEMA flood zone ${parcel.flood_zone}, which is a high-risk area. Flood insurance will be required and development may face significant regulatory hurdles, including elevated construction requirements and potential environmental review.`
-        : `The parcel is in FEMA flood zone ${parcel.flood_zone}, which is a minimal-risk area. No special flood-related development restrictions are anticipated.`
+        ? `The parcel is located in FEMA flood zone ${floodZone}, which is a high-risk area. Flood insurance will be required and development may face significant regulatory hurdles, including elevated construction requirements and potential environmental review.`
+        : `The parcel is in FEMA flood zone ${floodZone}, which is a minimal-risk area. No special flood-related development restrictions are anticipated.`
     );
   } else {
     parts.push(
@@ -84,7 +85,8 @@ function getInfrastructureAccess(parcel: Parcel): string {
     );
   }
 
-  if (parcel.opportunity_zone) {
+  const opportunityZone = parcel.raw_attributes?.opportunity_zone as boolean | undefined;
+  if (opportunityZone) {
     parts.push(
       'This parcel is located within a designated Opportunity Zone, making it eligible for significant tax incentives under the Opportunity Zone program. Qualified investors may defer and potentially reduce capital gains taxes through investment in this area.'
     );

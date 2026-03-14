@@ -10,21 +10,19 @@ export function exportParcelsCSV(
 ): void {
   const data = parcels.map((p) => ({
     APN: p.apn ?? '',
-    Address: p.address ?? '',
-    City: p.city ?? '',
+    Address: p.situs_address ?? '',
     County: p.county ?? '',
-    Jurisdiction: p.jurisdiction ?? '',
+    State: p.state_abbr ?? '',
     Acreage: p.acreage ?? '',
     Zoning: p.zoning ?? '',
-    'Land Use': p.land_use ?? '',
+    'Zoning Description': p.zoning_description ?? '',
+    'Land Use': p.land_use_code ?? '',
     'Owner Name': p.owner_name ?? '',
-    'Mailing Address': p.mailing_address ?? '',
-    'Assessed Land Value': p.assessed_land_value ?? '',
-    'Assessed Improvement Value': p.assessed_improvement_value ?? '',
-    'Last Sale Price': p.last_sale_price ?? '',
-    'Last Sale Date': p.last_sale_date ?? '',
-    'Flood Zone': p.flood_zone ?? '',
-    'Opportunity Zone': p.opportunity_zone ? 'Yes' : 'No',
+    'Mailing Address': p.owner_mailing_address ?? '',
+    'Assessed Value': p.assessed_value ?? '',
+    'Legal Description': p.legal_description ?? '',
+    'Data Source': p.data_source ?? '',
+    'Data Date': p.data_date ?? '',
   }));
 
   const csv = Papa.unparse(data);
@@ -38,8 +36,8 @@ export function exportSitesCSV(
   filename = 'sites-export.csv'
 ): void {
   const data = sites.map((s) => ({
-    Address: s.parcel?.address ?? '',
-    City: s.parcel?.city ?? '',
+    Address: s.parcel?.situs_address ?? '',
+    County: s.parcel?.county ?? '',
     Acreage: s.parcel?.acreage ?? '',
     Zoning: s.parcel?.zoning ?? '',
     Status: s.status,

@@ -131,7 +131,7 @@ export default function ProjectKanban() {
                   }`}
                 >
                   <p className="text-sm font-medium text-gray-900 truncate">
-                    {site.parcel?.address ?? 'Unknown Address'}
+                    {site.parcel?.situs_address ?? 'Unknown Address'}
                   </p>
                   <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
                     {site.parcel?.acreage != null && (

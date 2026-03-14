@@ -9,7 +9,7 @@ import { useParcelStore } from '@/lib/stores/parcel-store';
 
 type SortField =
   | 'address'
-  | 'city'
+  | 'county'
   | 'acreage'
   | 'zoning'
   | 'status'
@@ -106,10 +106,10 @@ export default function ProjectTable() {
       let cmp = 0;
       switch (sortField) {
         case 'address':
-          cmp = (a.parcel?.address ?? '').localeCompare(b.parcel?.address ?? '');
+          cmp = (a.parcel?.situs_address ?? '').localeCompare(b.parcel?.situs_address ?? '');
           break;
-        case 'city':
-          cmp = (a.parcel?.city ?? '').localeCompare(b.parcel?.city ?? '');
+        case 'county':
+          cmp = (a.parcel?.county ?? '').localeCompare(b.parcel?.county ?? '');
           break;
         case 'acreage':
           cmp = (a.parcel?.acreage ?? 0) - (b.parcel?.acreage ?? 0);
@@ -151,7 +151,7 @@ export default function ProjectTable() {
     (site: ProjectSite) => {
       if (site.parcel) {
         setSelectedParcel(site.parcel);
-        const geom = site.parcel.geom;
+        const geom = site.parcel.geometry;
         if (geom) {
           const coords = geom.coordinates[0];
           const lngs = coords.map((c) => c[0]);
@@ -252,7 +252,7 @@ export default function ProjectTable() {
               {(
                 [
                   ['address', 'Address'],
-                  ['city', 'City'],
+                  ['county', 'County'],
                   ['acreage', 'Acreage'],
                   ['zoning', 'Zoning'],
                   ['status', 'Status'],
@@ -293,10 +293,10 @@ export default function ProjectTable() {
                     />
                   </td>
                   <td className="px-3 py-2 font-medium text-gray-900 whitespace-nowrap">
-                    {site.parcel?.address ?? '-'}
+                    {site.parcel?.situs_address ?? '-'}
                   </td>
                   <td className="px-3 py-2 text-gray-600 whitespace-nowrap">
-                    {site.parcel?.city ?? '-'}
+                    {site.parcel?.county ?? '-'}
                   </td>
                   <td className="px-3 py-2 text-gray-600">
                     {site.parcel?.acreage?.toFixed(1) ?? '-'}

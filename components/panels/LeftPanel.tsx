@@ -193,8 +193,8 @@ export default function LeftPanel() {
       setSelectedParcel(parcel);
       openRightPanel('parcel');
       setShowResults(false);
-      if (parcel.geom) {
-        const [lng, lat] = getCenter(parcel.geom);
+      if (parcel.geometry) {
+        const [lng, lat] = getCenter(parcel.geometry);
         flyTo(lng, lat, 16);
       }
     },
@@ -220,9 +220,8 @@ export default function LeftPanel() {
       acreage_min: undefined,
       acreage_max: undefined,
       zoning_types: undefined,
-      jurisdiction: undefined,
-      flood_zone: undefined,
-      opportunity_zone: undefined,
+      county: undefined,
+      state_abbr: undefined,
       assessed_value_min: undefined,
       assessed_value_max: undefined,
       search_query: undefined,
@@ -240,14 +239,11 @@ export default function LeftPanel() {
   if (filters.zoning_types?.length) {
     activeFilterEntries.push({ key: 'zoning_types', label: `Zoning: ${filters.zoning_types.join(', ')}` });
   }
-  if (filters.jurisdiction) {
-    activeFilterEntries.push({ key: 'jurisdiction', label: `Jurisdiction: ${filters.jurisdiction}` });
+  if (filters.county) {
+    activeFilterEntries.push({ key: 'county', label: `County: ${filters.county}` });
   }
-  if (filters.flood_zone) {
-    activeFilterEntries.push({ key: 'flood_zone', label: `Flood: ${filters.flood_zone}` });
-  }
-  if (filters.opportunity_zone !== undefined) {
-    activeFilterEntries.push({ key: 'opportunity_zone', label: 'Opportunity Zone' });
+  if (filters.state_abbr) {
+    activeFilterEntries.push({ key: 'state_abbr', label: `State: ${filters.state_abbr}` });
   }
   if (filters.assessed_value_min !== undefined) {
     activeFilterEntries.push({ key: 'assessed_value_min', label: `Min Value: $${filters.assessed_value_min.toLocaleString()}` });
@@ -281,7 +277,7 @@ export default function LeftPanel() {
               type="text"
               value={searchQuery}
               onChange={handleSearchChange}
-              placeholder="Search address, APN, city, owner..."
+              placeholder="Search address, APN, county, owner..."
               className="w-full rounded-lg bg-gray-800 border border-gray-600 py-2 pl-10 pr-4 text-sm text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
@@ -298,10 +294,10 @@ export default function LeftPanel() {
                 className="flex w-full flex-col px-3 py-2 text-left hover:bg-gray-700 border-b border-gray-700 last:border-b-0"
               >
                 <span className="text-sm font-medium text-white truncate">
-                  {parcel.address ?? 'No Address'}
+                  {parcel.situs_address ?? 'No Address'}
                 </span>
                 <span className="text-xs text-gray-400">
-                  {parcel.city ?? 'Unknown City'} &middot; APN: {parcel.apn ?? 'N/A'}
+                  {parcel.county ?? 'Unknown County'} &middot; APN: {parcel.apn ?? 'N/A'}
                 </span>
               </button>
             ))}

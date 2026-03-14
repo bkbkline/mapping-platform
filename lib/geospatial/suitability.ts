@@ -13,7 +13,8 @@ const DISQUALIFYING_FLOOD_ZONES = ['A', 'AE', 'AH', 'AO', 'V', 'VE'];
 export function calculateSuitabilityScore(parcel: Parcel): SuitabilityBreakdown {
   const acreage_score = scoreAcreage(parcel.acreage);
   const zoning_score = scoreZoning(parcel.zoning);
-  const flood_zone_score = scoreFloodZone(parcel.flood_zone);
+  const floodZone = parcel.raw_attributes?.flood_zone as string | null | undefined;
+  const flood_zone_score = scoreFloodZone(floodZone ?? null);
   const highway_proximity_score = 15; // placeholder — needs spatial query
   const rail_access_score = 10; // placeholder — needs spatial query
   const infrastructure_score = 10; // placeholder — needs spatial query

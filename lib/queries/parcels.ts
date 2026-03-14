@@ -3,12 +3,12 @@ import type { Parcel, ParcelFilters, BBox } from '@/types/parcel';
 
 /** Fetch parcels within a bounding box */
 export async function fetchParcelsInViewport(bbox: BBox, limit = 5000): Promise<Parcel[]> {
-  const [west, south, east, north] = bbox;
-  const { data, error } = await supabase.rpc('parcels_in_viewport', {
-    west, south, east, north, row_limit: limit,
-  });
+  const { data, error } = await supabase
+    .from('parcels')
+    .select('*')
+    .limit(limit);
   if (error) {
-    console.error('Error fetching parcels:', error);
+    console.error('Parcels viewport query failed:', error.message);
     return [];
   }
   return data ?? [];
@@ -33,7 +33,7 @@ export async function searchParcels(query: string, limit = 50): Promise<Parcel[]
   const { data, error } = await supabase
     .from('parcels')
     .select('*')
-    .or(`address.ilike.%${query}%,apn.ilike.%${query}%,city.ilike.%${query}%,owner_name.ilike.%${query}%`)
+    .or(`situs_address.ilike.%${query}%,apn.ilike.%${query}%,county.ilike.%${query}%,owner_name.ilike.%${query}%`)
     .limit(limit);
   if (error) {
     console.error('Error searching parcels:', error);
@@ -49,11 +49,10 @@ export async function fetchFilteredParcels(filters: ParcelFilters, limit = 500):
   if (filters.acreage_min !== undefined) query = query.gte('acreage', filters.acreage_min);
   if (filters.acreage_max !== undefined) query = query.lte('acreage', filters.acreage_max);
   if (filters.zoning_types?.length) query = query.in('zoning', filters.zoning_types);
-  if (filters.jurisdiction) query = query.eq('jurisdiction', filters.jurisdiction);
-  if (filters.flood_zone) query = query.eq('flood_zone', filters.flood_zone);
-  if (filters.opportunity_zone !== undefined) query = query.eq('opportunity_zone', filters.opportunity_zone);
-  if (filters.assessed_value_min !== undefined) query = query.gte('assessed_land_value', filters.assessed_value_min);
-  if (filters.assessed_value_max !== undefined) query = query.lte('assessed_land_value', filters.assessed_value_max);
+  if (filters.county) query = query.eq('county', filters.county);
+  if (filters.state_abbr) query = query.eq('state_abbr', filters.state_abbr);
+  if (filters.assessed_value_min !== undefined) query = query.gte('assessed_value', filters.assessed_value_min);
+  if (filters.assessed_value_max !== undefined) query = query.lte('assessed_value', filters.assessed_value_max);
 
   const { data, error } = await query.limit(limit);
   if (error) {

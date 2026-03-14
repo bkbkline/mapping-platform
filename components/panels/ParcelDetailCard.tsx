@@ -170,10 +170,10 @@ export default function ParcelDetailCard() {
   );
 
   const handleViewComps = useCallback(async () => {
-    if (!selectedParcel?.geom) return;
+    if (!selectedParcel?.geometry) return;
     setLoadingComps(true);
     try {
-      const [lng, lat] = getCenter(selectedParcel.geom);
+      const [lng, lat] = getCenter(selectedParcel.geometry);
       const comps = await fetchCompsNearPoint(lng, lat);
       const analytics = calculateCompAnalytics(comps);
       setComps(comps);
@@ -187,21 +187,19 @@ export default function ParcelDetailCard() {
   const handleExportCSV = useCallback(() => {
     if (!selectedParcel) return;
     const headers = [
-      'APN', 'Address', 'City', 'County', 'Jurisdiction', 'Acreage',
-      'Zoning', 'Land Use', 'Owner Name', 'Assessed Land Value',
-      'Assessed Improvement Value', 'Last Sale Price', 'Last Sale Date',
-      'Flood Zone', 'Opportunity Zone',
+      'APN', 'Address', 'County', 'State', 'Acreage',
+      'Zoning', 'Zoning Description', 'Land Use', 'Owner Name',
+      'Assessed Value', 'Legal Description', 'Data Source', 'Data Date',
     ];
     const values = [
-      selectedParcel.apn, selectedParcel.address, selectedParcel.city,
-      selectedParcel.county, selectedParcel.jurisdiction,
+      selectedParcel.apn, selectedParcel.situs_address,
+      selectedParcel.county, selectedParcel.state_abbr,
       selectedParcel.acreage?.toString(), selectedParcel.zoning,
-      selectedParcel.land_use, selectedParcel.owner_name,
-      selectedParcel.assessed_land_value?.toString(),
-      selectedParcel.assessed_improvement_value?.toString(),
-      selectedParcel.last_sale_price?.toString(),
-      selectedParcel.last_sale_date, selectedParcel.flood_zone,
-      selectedParcel.opportunity_zone ? 'Yes' : 'No',
+      selectedParcel.zoning_description, selectedParcel.land_use_code,
+      selectedParcel.owner_name,
+      selectedParcel.assessed_value?.toString(),
+      selectedParcel.legal_description, selectedParcel.data_source,
+      selectedParcel.data_date,
     ];
     const csv = [headers.join(','), values.map((v) => `"${v ?? ''}"`).join(',')].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
@@ -221,11 +219,12 @@ export default function ParcelDetailCard() {
     );
   }
 
-  const totalAssessedValue =
-    (selectedParcel.assessed_land_value ?? 0) +
-    (selectedParcel.assessed_improvement_value ?? 0);
-
-  const center = selectedParcel.geom ? getCenter(selectedParcel.geom) : null;
+  const center = selectedParcel.geometry ? getCenter(selectedParcel.geometry) : null;
+  const rawCity = selectedParcel.raw_attributes?.city as string | undefined;
+  const rawFloodZone = selectedParcel.raw_attributes?.flood_zone as string | undefined;
+  const rawOpportunityZone = selectedParcel.raw_attributes?.opportunity_zone as boolean | undefined;
+  const rawLastSalePrice = selectedParcel.raw_attributes?.last_sale_price as number | undefined;
+  const rawLastSaleDate = selectedParcel.raw_attributes?.last_sale_date as string | undefined;
 
   // Circular progress ring values
   const radius = 40;
@@ -237,9 +236,9 @@ export default function ParcelDetailCard() {
       {/* Header */}
       <div>
         <h3 className="text-lg font-bold text-gray-900">
-          {selectedParcel.address ?? 'No Address'}
+          {selectedParcel.situs_address ?? 'No Address'}
         </h3>
-        <p className="text-sm text-gray-500">{selectedParcel.city ?? 'Unknown City'}</p>
+        <p className="text-sm text-gray-500">{rawCity ?? selectedParcel.county ?? 'Unknown Location'}</p>
         {selectedParcel.apn && (
           <span className="mt-1 inline-block rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">
             APN: {selectedParcel.apn}
@@ -310,13 +309,14 @@ export default function ParcelDetailCard() {
       <DetailSection title="Parcel Info">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
           <InfoRow label="APN" value={selectedParcel.apn ?? 'N/A'} />
-          <InfoRow label="Address" value={selectedParcel.address ?? 'N/A'} />
-          <InfoRow label="City" value={selectedParcel.city ?? 'N/A'} />
+          <InfoRow label="Address" value={selectedParcel.situs_address ?? 'N/A'} />
           <InfoRow label="County" value={selectedParcel.county ?? 'N/A'} />
-          <InfoRow label="Jurisdiction" value={selectedParcel.jurisdiction ?? 'N/A'} />
+          <InfoRow label="State" value={selectedParcel.state_abbr ?? 'N/A'} />
           <InfoRow label="Acreage" value={formatAcreage(selectedParcel.acreage)} />
           <InfoRow label="Zoning" value={selectedParcel.zoning ?? 'N/A'} />
-          <InfoRow label="Land Use" value={selectedParcel.land_use ?? 'N/A'} />
+          <InfoRow label="Zoning Description" value={selectedParcel.zoning_description ?? 'N/A'} />
+          <InfoRow label="Land Use" value={selectedParcel.land_use_code ?? 'N/A'} />
+          <InfoRow label="Legal Description" value={selectedParcel.legal_description ?? 'N/A'} />
         </dl>
       </DetailSection>
 
@@ -324,7 +324,7 @@ export default function ParcelDetailCard() {
       <DetailSection title="Ownership">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
           <InfoRow label="Owner Name" value={selectedParcel.owner_name ?? 'N/A'} />
-          <InfoRow label="Mailing Address" value={selectedParcel.mailing_address ?? 'N/A'} />
+          <InfoRow label="Mailing Address" value={selectedParcel.owner_mailing_address ?? 'N/A'} />
         </dl>
       </DetailSection>
 
@@ -332,16 +332,8 @@ export default function ParcelDetailCard() {
       <DetailSection title="Valuation">
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
           <InfoRow
-            label="Assessed Land Value"
-            value={formatCurrency(selectedParcel.assessed_land_value)}
-          />
-          <InfoRow
-            label="Assessed Improvement Value"
-            value={formatCurrency(selectedParcel.assessed_improvement_value)}
-          />
-          <InfoRow
-            label="Total Assessed Value"
-            value={formatCurrency(totalAssessedValue || null)}
+            label="Assessed Value"
+            value={formatCurrency(selectedParcel.assessed_value)}
           />
         </dl>
       </DetailSection>
@@ -351,11 +343,11 @@ export default function ParcelDetailCard() {
         <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
           <InfoRow
             label="Last Sale Price"
-            value={formatCurrency(selectedParcel.last_sale_price)}
+            value={formatCurrency(rawLastSalePrice ?? null)}
           />
           <InfoRow
             label="Last Sale Date"
-            value={selectedParcel.last_sale_date ?? 'N/A'}
+            value={rawLastSaleDate ?? 'N/A'}
           />
         </dl>
       </DetailSection>
@@ -366,21 +358,21 @@ export default function ParcelDetailCard() {
           <dt className="text-xs text-gray-500">Flood Zone</dt>
           <dd>
             <span
-              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getFloodBadgeClass(selectedParcel.flood_zone)}`}
+              className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${getFloodBadgeClass(rawFloodZone ?? null)}`}
             >
-              {selectedParcel.flood_zone ?? 'Unknown'}
+              {rawFloodZone ?? 'Unknown'}
             </span>
           </dd>
           <dt className="text-xs text-gray-500">Opportunity Zone</dt>
           <dd>
             <span
               className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                selectedParcel.opportunity_zone
+                rawOpportunityZone
                   ? 'bg-green-100 text-green-700'
                   : 'bg-gray-100 text-gray-600'
               }`}
             >
-              {selectedParcel.opportunity_zone ? 'Yes' : 'No'}
+              {rawOpportunityZone ? 'Yes' : 'No'}
             </span>
           </dd>
         </dl>

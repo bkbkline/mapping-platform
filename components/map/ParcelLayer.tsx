@@ -45,13 +45,13 @@ function parcelsToGeoJSON(parcels: Parcel[]): GeoJSON.FeatureCollection {
   const features: ParcelFeature[] = [];
 
   for (const parcel of parcels) {
-    if (!parcel.geom) continue;
+    if (!parcel.geometry) continue;
 
-    const { geom, ...properties } = parcel;
+    const { geometry, ...properties } = parcel;
     features.push({
       type: 'Feature',
       id: parcel.id,
-      geometry: geom,
+      geometry,
       properties,
     } as ParcelFeature);
   }

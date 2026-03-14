@@ -4,23 +4,23 @@ export type BBox = [number, number, number, number];
 /** Parcel record from Supabase */
 export interface Parcel {
   id: string;
+  org_id: string | null;
   apn: string | null;
-  address: string | null;
-  city: string | null;
   county: string | null;
-  jurisdiction: string | null;
-  acreage: number | null;
-  zoning: string | null;
-  land_use: string | null;
+  state_abbr: string | null;
+  situs_address: string | null;
   owner_name: string | null;
-  mailing_address: string | null;
-  assessed_land_value: number | null;
-  assessed_improvement_value: number | null;
-  last_sale_price: number | null;
-  last_sale_date: string | null;
-  flood_zone: string | null;
-  opportunity_zone: boolean;
-  geom: GeoJSON.Polygon | null;
+  owner_mailing_address: string | null;
+  acreage: number | null;
+  assessed_value: number | null;
+  land_use_code: string | null;
+  zoning: string | null;
+  zoning_description: string | null;
+  legal_description: string | null;
+  geometry: GeoJSON.Polygon | null;
+  raw_attributes: Record<string, unknown>;
+  data_source: string | null;
+  data_date: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -46,9 +46,8 @@ export interface ParcelFilters {
   acreage_min?: number;
   acreage_max?: number;
   zoning_types?: string[];
-  jurisdiction?: string;
-  flood_zone?: string;
-  opportunity_zone?: boolean;
+  county?: string;
+  state_abbr?: string;
   assessed_value_min?: number;
   assessed_value_max?: number;
   search_query?: string;
@@ -56,5 +55,5 @@ export interface ParcelFilters {
 
 /** GeoJSON Feature wrapping a Parcel */
 export interface ParcelFeature extends GeoJSON.Feature<GeoJSON.Polygon> {
-  properties: Omit<Parcel, 'geom'>;
+  properties: Omit<Parcel, 'geometry'>;
 }

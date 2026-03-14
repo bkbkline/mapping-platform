@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase/server';
+import { getSupabaseAdmin } from '@/lib/supabase/server';
 
 interface GeocodingFeature {
   id: string;
@@ -14,9 +14,9 @@ interface GeocodingResponse {
 
 interface ParcelResult {
   id: string;
-  address: string | null;
+  situs_address: string | null;
   apn: string | null;
-  city: string | null;
+  county: string | null;
   owner_name: string | null;
 }
 
@@ -58,13 +58,13 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({ results });
 }
 
-/** Search parcels by address, APN, city, or owner name. */
+/** Search parcels by situs_address, APN, county, or owner name. */
 async function searchParcels(query: string): Promise<SearchResult[]> {
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from('parcels')
-    .select('id, address, apn, city, owner_name')
+    .select('id, situs_address, apn, county, owner_name')
     .or(
-      `address.ilike.%${query}%,apn.ilike.%${query}%,city.ilike.%${query}%,owner_name.ilike.%${query}%`
+      `situs_address.ilike.%${query}%,apn.ilike.%${query}%,county.ilike.%${query}%,owner_name.ilike.%${query}%`
     )
     .limit(20);
 
@@ -73,8 +73,8 @@ async function searchParcels(query: string): Promise<SearchResult[]> {
   return (data as ParcelResult[]).map((parcel) => ({
     type: 'parcel' as const,
     id: parcel.id,
-    label: parcel.address ?? parcel.apn ?? 'Unknown Parcel',
-    sublabel: [parcel.city, parcel.owner_name].filter(Boolean).join(' - '),
+    label: parcel.situs_address ?? parcel.apn ?? 'Unknown Parcel',
+    sublabel: [parcel.county, parcel.owner_name].filter(Boolean).join(' - '),
     center: null,
   }));
 }

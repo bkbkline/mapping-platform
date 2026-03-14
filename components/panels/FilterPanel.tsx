@@ -9,9 +9,6 @@ import type { CompFilters } from '@/types/comps';
 /** Zoning codes available for filtering */
 const ZONING_OPTIONS = ['M-1', 'M-2', 'M-3', 'I-1', 'I-2', 'C-1', 'C-2', 'C-3', 'MU'] as const;
 
-/** Flood zone options for the dropdown */
-const FLOOD_ZONE_OPTIONS = ['Any', 'X', 'AE', 'A', 'V'] as const;
-
 /**
  * FilterPanel - Advanced filter controls for parcels and comps.
  *
@@ -34,14 +31,11 @@ export default function FilterPanel({ onClose }: { onClose?: () => void }) {
   const [selectedZonings, setSelectedZonings] = useState<string[]>(
     currentParcelFilters.zoning_types ?? []
   );
-  const [jurisdiction, setJurisdiction] = useState(
-    currentParcelFilters.jurisdiction ?? ''
+  const [county, setCounty] = useState(
+    currentParcelFilters.county ?? ''
   );
-  const [floodZone, setFloodZone] = useState(
-    currentParcelFilters.flood_zone ?? 'Any'
-  );
-  const [opportunityZone, setOpportunityZone] = useState(
-    currentParcelFilters.opportunity_zone ?? false
+  const [stateAbbr, setStateAbbr] = useState(
+    currentParcelFilters.state_abbr ?? ''
   );
   const [assessedValueMin, setAssessedValueMin] = useState<string>(
     currentParcelFilters.assessed_value_min?.toString() ?? ''
@@ -81,9 +75,8 @@ export default function FilterPanel({ onClose }: { onClose?: () => void }) {
       acreage_min: acreageMin ? parseFloat(acreageMin) : undefined,
       acreage_max: acreageMax ? parseFloat(acreageMax) : undefined,
       zoning_types: selectedZonings.length > 0 ? selectedZonings : undefined,
-      jurisdiction: jurisdiction || undefined,
-      flood_zone: floodZone !== 'Any' ? floodZone : undefined,
-      opportunity_zone: opportunityZone || undefined,
+      county: county || undefined,
+      state_abbr: stateAbbr || undefined,
       assessed_value_min: assessedValueMin ? parseFloat(assessedValueMin) : undefined,
       assessed_value_max: assessedValueMax ? parseFloat(assessedValueMax) : undefined,
     };
@@ -101,8 +94,8 @@ export default function FilterPanel({ onClose }: { onClose?: () => void }) {
     setCompFilters(compFilters);
     onClose?.();
   }, [
-    acreageMin, acreageMax, selectedZonings, jurisdiction, floodZone,
-    opportunityZone, assessedValueMin, assessedValueMax,
+    acreageMin, acreageMax, selectedZonings, county, stateAbbr,
+    assessedValueMin, assessedValueMax,
     saleDateStart, saleDateEnd, priceMin, priceMax, ppaMin, ppaMax,
     setParcelFilters, setCompFilters, onClose,
   ]);
@@ -112,9 +105,8 @@ export default function FilterPanel({ onClose }: { onClose?: () => void }) {
     setAcreageMin('');
     setAcreageMax('');
     setSelectedZonings([]);
-    setJurisdiction('');
-    setFloodZone('Any');
-    setOpportunityZone(false);
+    setCounty('');
+    setStateAbbr('');
     setAssessedValueMin('');
     setAssessedValueMax('');
     setSaleDateStart('');
@@ -129,9 +121,8 @@ export default function FilterPanel({ onClose }: { onClose?: () => void }) {
       acreage_min: undefined,
       acreage_max: undefined,
       zoning_types: undefined,
-      jurisdiction: undefined,
-      flood_zone: undefined,
-      opportunity_zone: undefined,
+      county: undefined,
+      state_abbr: undefined,
       assessed_value_min: undefined,
       assessed_value_max: undefined,
       search_query: undefined,
@@ -225,49 +216,33 @@ export default function FilterPanel({ onClose }: { onClose?: () => void }) {
             </div>
           </div>
 
-          {/* Jurisdiction */}
+          {/* County */}
           <div className="mb-4">
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Jurisdiction
+              County
             </label>
             <input
               type="text"
-              value={jurisdiction}
-              onChange={(e) => setJurisdiction(e.target.value)}
-              placeholder="Enter jurisdiction..."
+              value={county}
+              onChange={(e) => setCounty(e.target.value)}
+              placeholder="Enter county..."
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
           </div>
 
-          {/* Flood Zone */}
+          {/* State */}
           <div className="mb-4">
             <label className="block text-xs font-medium text-gray-700 mb-1">
-              Flood Zone
+              State
             </label>
-            <select
-              value={floodZone}
-              onChange={(e) => setFloodZone(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              {FLOOD_ZONE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Opportunity Zone */}
-          <div className="mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={opportunityZone}
-                onChange={(e) => setOpportunityZone(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-              />
-              <span className="text-sm text-gray-700">Opportunity Zone Only</span>
-            </label>
+            <input
+              type="text"
+              value={stateAbbr}
+              onChange={(e) => setStateAbbr(e.target.value)}
+              placeholder="e.g. CA, TX..."
+              maxLength={2}
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            />
           </div>
 
           {/* Assessed Value Range */}
