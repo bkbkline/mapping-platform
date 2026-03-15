@@ -16,6 +16,19 @@ Log in immediately with the demo account — no signup required:
 
 The test account has admin access to all seeded data (15 parcels, 15 comps, zoning districts, flood zones, industrial parks, infrastructure assets). See `CREDENTIALS.md` for full details.
 
+## UI Design
+
+The interface follows a **Land.id-style layout** with:
+- **Fixed top bar** (52px): logo, smart search, action buttons (Preview, Save, Share)
+- **Floating left sidebar** (240px): 5 accordion sections that expand/collapse independently
+  - Basemap: style picker grid (Satellite, Streets, Light, Dark, Terrain)
+  - Overlays: layer rows with thumbnails, descriptions, circular toggles
+  - My Items: collections, saved searches, projects
+  - Image Gallery: uploaded raster/image layers
+  - Add Items: upload, draw, URL import, annotations
+- **Horizontal map toolbar** (top-right): drawing tools, parcel toggle, reports
+- **Full-screen Mapbox map** always visible behind all UI elements (never pushed by sidebar)
+
 ## Features
 
 ### Map Engine
