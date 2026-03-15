@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import {
@@ -60,6 +60,7 @@ function parseURLState(): { center: [number, number]; zoom: number } {
 export function MapContainer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const hoverPopupRef = useRef<mapboxgl.Popup | null>(null);
   const hoveredFeatureIdRef = useRef<string | number | null>(null);
   const urlTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -252,6 +253,7 @@ export function MapContainer() {
     map.on('load', () => {
       mapRef.current = map;
       setMapRef(map);
+      setMapReady(true);
 
       // Set initial viewport state
       const c = map.getCenter();
@@ -298,6 +300,7 @@ export function MapContainer() {
 
       setMapRef(null);
       mapRef.current = null;
+      setMapReady(false);
       map.remove();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -306,7 +309,7 @@ export function MapContainer() {
   return (
     <div className="relative flex-1 h-full w-full">
       <div ref={containerRef} className="absolute inset-0" />
-      {mapRef.current && (
+      {mapReady && mapRef.current && (
         <>
           <ParcelLayer map={mapRef.current} />
           <DrawingTools map={mapRef.current} />
