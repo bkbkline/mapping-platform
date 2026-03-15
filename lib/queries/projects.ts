@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase/client';
 import type { Project, ProjectSite, Note, SavedSearch, Drawing } from '@/types/project';
-import type { PipelineStatus, Priority } from '@/types/project';
 
 /** Fetch all projects for the current user */
 export async function fetchProjects(): Promise<Project[]> {
@@ -21,7 +20,7 @@ export async function createProject(name: string, description: string): Promise<
   if (!user) return null;
   const { data, error } = await supabase
     .from('projects')
-    .insert({ name, description, user_id: user.id })
+    .insert({ name, description, created_by: user.id })
     .select()
     .single();
   if (error) {
@@ -34,13 +33,11 @@ export async function createProject(name: string, description: string): Promise<
 /** Add a parcel to a project */
 export async function addSiteToProject(
   projectId: string,
-  parcelId: string,
-  status: PipelineStatus = 'New Lead',
-  priority: Priority = 'Medium'
+  parcelId: string
 ): Promise<ProjectSite | null> {
   const { data, error } = await supabase
     .from('project_sites')
-    .insert({ project_id: projectId, parcel_id: parcelId, status, priority })
+    .insert({ project_id: projectId, parcel_id: parcelId })
     .select()
     .single();
   if (error) {
@@ -50,31 +47,43 @@ export async function addSiteToProject(
   return data;
 }
 
-/** Update a project site status */
-export async function updateSiteStatus(siteId: string, status: PipelineStatus): Promise<boolean> {
+/** Update a project site metadata (status, priority stored in metadata JSON) */
+export async function updateSiteStatus(siteId: string, status: string): Promise<boolean> {
+  const { data: existing } = await supabase
+    .from('project_sites')
+    .select('metadata')
+    .eq('id', siteId)
+    .single();
+  const metadata = { ...(existing?.metadata as Record<string, unknown> ?? {}), status };
   const { error } = await supabase
     .from('project_sites')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ metadata })
     .eq('id', siteId);
   return !error;
 }
 
 /** Update a project site priority */
-export async function updateSitePriority(siteId: string, priority: Priority): Promise<boolean> {
+export async function updateSitePriority(siteId: string, priority: string): Promise<boolean> {
+  const { data: existing } = await supabase
+    .from('project_sites')
+    .select('metadata')
+    .eq('id', siteId)
+    .single();
+  const metadata = { ...(existing?.metadata as Record<string, unknown> ?? {}), priority };
   const { error } = await supabase
     .from('project_sites')
-    .update({ priority, updated_at: new Date().toISOString() })
+    .update({ metadata })
     .eq('id', siteId);
   return !error;
 }
 
-/** Add a note to a parcel */
-export async function addNote(parcelId: string, content: string): Promise<Note | null> {
+/** Add a note to a project */
+export async function addNote(projectId: string, content: string): Promise<Note | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data, error } = await supabase
     .from('notes')
-    .insert({ parcel_id: parcelId, content, user_id: user.id })
+    .insert({ project_id: projectId, content, created_by: user.id })
     .select()
     .single();
   if (error) {
@@ -84,12 +93,12 @@ export async function addNote(parcelId: string, content: string): Promise<Note |
   return data;
 }
 
-/** Fetch notes for a parcel */
-export async function fetchNotes(parcelId: string): Promise<Note[]> {
+/** Fetch notes for a project */
+export async function fetchNotes(projectId: string): Promise<Note[]> {
   const { data, error } = await supabase
     .from('notes')
     .select('*')
-    .eq('parcel_id', parcelId)
+    .eq('project_id', projectId)
     .order('created_at', { ascending: false });
   if (error) {
     console.error('Error fetching notes:', error);
@@ -104,7 +113,7 @@ export async function saveSearch(name: string, filters: Record<string, unknown>)
   if (!user) return null;
   const { data, error } = await supabase
     .from('saved_searches')
-    .insert({ name, filters, user_id: user.id })
+    .insert({ name, filters, created_by: user.id })
     .select()
     .single();
   if (error) {
@@ -128,12 +137,12 @@ export async function fetchSavedSearches(): Promise<SavedSearch[]> {
 }
 
 /** Save a drawing */
-export async function saveDrawing(name: string, geom: GeoJSON.Geometry, properties: Record<string, unknown> = {}): Promise<Drawing | null> {
+export async function saveDrawing(geometry: GeoJSON.Geometry, properties: Record<string, unknown> = {}): Promise<Drawing | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data, error } = await supabase
     .from('drawings')
-    .insert({ name, geom: geom as unknown as string, properties, user_id: user.id })
+    .insert({ geometry: geometry as unknown as string, properties, created_by: user.id })
     .select()
     .single();
   if (error) {

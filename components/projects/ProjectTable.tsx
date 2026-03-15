@@ -15,7 +15,7 @@ type SortField =
   | 'status'
   | 'priority'
   | 'tags'
-  | 'updated_at';
+  | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 const PRIORITY_VARIANT: Record<Priority, string> = {
@@ -94,7 +94,7 @@ export default function ProjectTable() {
   const flyTo = useMapStore((s) => s.flyTo);
   const setSelectedParcel = useParcelStore((s) => s.setSelectedParcel);
 
-  const [sortField, setSortField] = useState<SortField>('updated_at');
+  const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDirection>('desc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
@@ -118,16 +118,16 @@ export default function ProjectTable() {
           cmp = (a.parcel?.zoning ?? '').localeCompare(b.parcel?.zoning ?? '');
           break;
         case 'status':
-          cmp = a.status.localeCompare(b.status);
+          cmp = (a.metadata?.status as string ?? 'New Lead').localeCompare(b.metadata?.status as string ?? 'New Lead');
           break;
         case 'priority':
-          cmp = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+          cmp = PRIORITY_ORDER[(a.metadata?.priority as Priority) ?? 'Medium'] - PRIORITY_ORDER[(b.metadata?.priority as Priority) ?? 'Medium'];
           break;
         case 'tags':
-          cmp = a.tags.join(',').localeCompare(b.tags.join(','));
+          cmp = (a.metadata?.tags as string[] ?? []).join(',').localeCompare((b.metadata?.tags as string[] ?? []).join(','));
           break;
-        case 'updated_at':
-          cmp = a.updated_at.localeCompare(b.updated_at);
+        case 'created_at':
+          cmp = a.created_at.localeCompare(b.created_at);
           break;
       }
       return sortDir === 'asc' ? cmp : -cmp;
@@ -186,7 +186,7 @@ export default function ProjectTable() {
     (status: PipelineStatus) => {
       if (!activeProject) return;
       const updatedSites = sites.map((s) =>
-        selectedIds.has(s.id) ? { ...s, status } : s
+        selectedIds.has(s.id) ? { ...s, metadata: { ...s.metadata, status } } : s
       );
       updateProject(activeProject.id, { sites: updatedSites });
       setSelectedIds(new Set());
@@ -198,7 +198,7 @@ export default function ProjectTable() {
     (priority: Priority) => {
       if (!activeProject) return;
       const updatedSites = sites.map((s) =>
-        selectedIds.has(s.id) ? { ...s, priority } : s
+        selectedIds.has(s.id) ? { ...s, metadata: { ...s.metadata, priority } } : s
       );
       updateProject(activeProject.id, { sites: updatedSites });
       setSelectedIds(new Set());
@@ -258,7 +258,7 @@ export default function ProjectTable() {
                   ['status', 'Status'],
                   ['priority', 'Priority'],
                   ['tags', 'Tags'],
-                  ['updated_at', 'Last Updated'],
+                  ['created_at', 'Created'],
                 ] as const
               ).map(([field, label]) => (
                 <th
@@ -274,7 +274,10 @@ export default function ProjectTable() {
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
             {sortedSites.map((site) => {
-              const statusColor = STATUS_COLORS[site.status] ?? '#6B7280';
+              const siteStatus = (site.metadata?.status as string ?? 'New Lead');
+              const sitePriority = (site.metadata?.priority as string ?? 'Medium');
+              const siteTags = (site.metadata?.tags as string[] ?? []);
+              const statusColor = STATUS_COLORS[siteStatus] ?? '#6B7280';
               return (
                 <tr
                   key={site.id}
@@ -309,19 +312,19 @@ export default function ProjectTable() {
                       className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-white"
                       style={{ backgroundColor: statusColor }}
                     >
-                      {site.status}
+                      {siteStatus}
                     </span>
                   </td>
                   <td className="px-3 py-2">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${PRIORITY_VARIANT[site.priority]}`}
+                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${PRIORITY_VARIANT[sitePriority as Priority]}`}
                     >
-                      {site.priority}
+                      {sitePriority}
                     </span>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex gap-1 flex-wrap">
-                      {site.tags.map((tag) => (
+                      {siteTags.map((tag) => (
                         <span
                           key={tag}
                           className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs"
@@ -332,7 +335,7 @@ export default function ProjectTable() {
                     </div>
                   </td>
                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap text-xs">
-                    {new Date(site.updated_at).toLocaleDateString()}
+                    {new Date(site.created_at).toLocaleDateString()}
                   </td>
                 </tr>
               );

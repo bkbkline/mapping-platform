@@ -34,7 +34,7 @@ export default function ProjectKanban() {
 
   const getSitesForStatus = useCallback(
     (status: PipelineStatus): ProjectSite[] =>
-      sites.filter((s) => s.status === status),
+      sites.filter((s) => (s.metadata?.status as string ?? 'New Lead') === status),
     [sites]
   );
 
@@ -61,11 +61,11 @@ export default function ProjectKanban() {
       if (!siteId || !activeProject) return;
 
       const site = sites.find((s) => s.id === siteId);
-      if (!site || site.status === targetStatus) return;
+      if (!site || (site.metadata?.status as string ?? 'New Lead') === targetStatus) return;
 
       // Optimistic update
       const updatedSites = sites.map((s) =>
-        s.id === siteId ? { ...s, status: targetStatus } : s
+        s.id === siteId ? { ...s, metadata: { ...s.metadata, status: targetStatus } } : s
       );
       updateProject(activeProject.id, {
         sites: updatedSites,
@@ -145,11 +145,11 @@ export default function ProjectKanban() {
                   </div>
                   <div className="mt-2 flex items-center gap-1.5 flex-wrap">
                     <span
-                      className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${PRIORITY_VARIANT[site.priority] ?? ''}`}
+                      className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${PRIORITY_VARIANT[(site.metadata?.priority as string ?? 'Medium')] ?? ''}`}
                     >
-                      {site.priority}
+                      {(site.metadata?.priority as string ?? 'Medium')}
                     </span>
-                    {site.tags.map((tag) => (
+                    {(site.metadata?.tags as string[] ?? []).map((tag) => (
                       <span
                         key={tag}
                         className="inline-block bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-xs"

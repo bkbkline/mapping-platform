@@ -311,8 +311,9 @@ export function DrawingTools({ map }: DrawingToolsProps) {
 
     setIsSaving(true);
     try {
-      const name = `Drawing ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-      const properties: Record<string, unknown> = {};
+      const properties: Record<string, unknown> = {
+        name: `Drawing ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
+      };
 
       if (measurement) {
         properties['measurement_type'] = measurement.type;
@@ -320,7 +321,7 @@ export function DrawingTools({ map }: DrawingToolsProps) {
         properties['measurement_formatted'] = measurement.formattedValue;
       }
 
-      const result = await saveDrawing(name, lastDrawnFeature.geometry, properties);
+      const result = await saveDrawing(lastDrawnFeature.geometry, properties);
       if (result) {
         setLastDrawnFeature(null);
       } else {

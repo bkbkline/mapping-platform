@@ -40,10 +40,10 @@ export function exportSitesCSV(
     County: s.parcel?.county ?? '',
     Acreage: s.parcel?.acreage ?? '',
     Zoning: s.parcel?.zoning ?? '',
-    Status: s.status,
-    Priority: s.priority,
+    Status: (s.metadata?.status as string) ?? 'New Lead',
+    Priority: (s.metadata?.priority as string) ?? 'Medium',
     Notes: s.notes ?? '',
-    Tags: s.tags?.join(', ') ?? '',
+    Tags: (s.metadata?.tags as string[])?.join(', ') ?? '',
   }));
 
   const csv = Papa.unparse(data);

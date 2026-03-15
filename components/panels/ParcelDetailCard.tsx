@@ -124,7 +124,7 @@ function DetailSection({
  */
 export default function ParcelDetailCard() {
   const { selectedParcel } = useParcelStore();
-  const { projects } = useProjectStore();
+  const { projects, activeProject } = useProjectStore();
   const { openRightPanel } = useUIStore();
   const { setComps, setAnalytics } = useCompStore();
 
@@ -139,18 +139,20 @@ export default function ParcelDetailCard() {
     ? scoreParcel(selectedParcel)
     : null;
 
-  // Fetch notes when parcel changes
+  // Fetch notes when parcel or active project changes
   useEffect(() => {
-    if (selectedParcel) {
-      fetchNotes(selectedParcel.id).then(setNotes);
+    if (activeProject) {
+      fetchNotes(activeProject.id).then(setNotes);
+    } else {
+      setNotes([]);
     }
-  }, [selectedParcel]);
+  }, [selectedParcel, activeProject]);
 
   const handleSaveNote = useCallback(async () => {
-    if (!selectedParcel || !newNote.trim()) return;
+    if (!activeProject || !newNote.trim()) return;
     setSavingNote(true);
     try {
-      const note = await addNote(selectedParcel.id, newNote.trim());
+      const note = await addNote(activeProject.id, newNote.trim());
       if (note) {
         setNotes((prev) => [note, ...prev]);
         setNewNote('');
@@ -158,7 +160,7 @@ export default function ParcelDetailCard() {
     } finally {
       setSavingNote(false);
     }
-  }, [selectedParcel, newNote]);
+  }, [activeProject, newNote]);
 
   const handleAddToProject = useCallback(
     async (projectId: string) => {
@@ -457,7 +459,7 @@ export default function ParcelDetailCard() {
           <button
             type="button"
             onClick={handleSaveNote}
-            disabled={savingNote || !newNote.trim()}
+            disabled={savingNote || !newNote.trim() || !activeProject}
             className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
             {savingNote ? 'Saving...' : 'Save Note'}

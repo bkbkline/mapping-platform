@@ -4,12 +4,15 @@ export type PipelineStatus = 'New Lead' | 'Screening' | 'High Potential' | 'Acti
 /** Priority levels */
 export type Priority = 'Low' | 'Medium' | 'High';
 
-/** Project record */
+/** Project record (matches actual DB schema) */
 export interface Project {
   id: string;
-  user_id: string;
+  org_id: string | null;
+  created_by: string;
   name: string | null;
   description: string | null;
+  status: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
   sites?: ProjectSite[];
@@ -20,28 +23,27 @@ export interface ProjectSite {
   id: string;
   project_id: string;
   parcel_id: string;
-  status: PipelineStatus;
-  priority: Priority;
+  name: string | null;
   notes: string | null;
-  tags: string[];
+  metadata: Record<string, unknown>;
   created_at: string;
-  updated_at: string;
   parcel?: import('./parcel').Parcel;
 }
 
-/** Note on a parcel */
+/** Note on a project */
 export interface Note {
   id: string;
-  user_id: string;
-  parcel_id: string;
+  project_id: string;
+  created_by: string;
   content: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 /** Saved search record */
 export interface SavedSearch {
   id: string;
-  user_id: string;
+  created_by: string;
   name: string | null;
   filters: import('./parcel').ParcelFilters;
   created_at: string;
@@ -50,9 +52,9 @@ export interface SavedSearch {
 /** Drawing record */
 export interface Drawing {
   id: string;
-  user_id: string;
-  name: string | null;
-  geom: GeoJSON.Geometry | null;
+  map_id: string | null;
+  created_by: string;
+  geometry: GeoJSON.Geometry | null;
   properties: Record<string, unknown>;
   created_at: string;
 }
@@ -60,10 +62,11 @@ export interface Drawing {
 /** Imported dataset record */
 export interface ImportedDataset {
   id: string;
-  user_id: string;
+  org_id: string | null;
+  created_by: string;
   name: string | null;
-  file_type: string | null;
-  row_count: number | null;
-  geom_type: string | null;
+  source_file: string | null;
+  layer_type: string | null;
+  metadata: Record<string, unknown>;
   created_at: string;
 }
