@@ -54,6 +54,7 @@ export default function LoginPage() {
         if (signInError) {
           setError(signInError.message);
         } else {
+          router.refresh();
           router.push('/');
         }
       }
