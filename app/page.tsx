@@ -16,7 +16,7 @@ export default function HomePage() {
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       {leftPanelOpen && <LeftPanel />}
-      <main className="flex-1 relative">
+      <main className="flex-1 relative h-full min-h-0">
         <MapContainer />
       </main>
       {rightPanelOpen && <RightPanel />}
