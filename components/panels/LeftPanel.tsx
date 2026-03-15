@@ -162,7 +162,9 @@ export default function LeftPanel() {
 
   // Load saved searches on mount
   useEffect(() => {
-    fetchSavedSearches().then(setSavedSearches);
+    fetchSavedSearches()
+      .then(setSavedSearches)
+      .catch((err) => console.error('Failed to fetch saved searches:', err));
   }, []);
 
   const handleSearchChange = useCallback(
@@ -179,8 +181,12 @@ export default function LeftPanel() {
       setSearching(true);
       try {
         const results = await searchParcels(searchQuery.trim());
-        setSearchResults(results);
+        setSearchResults(results ?? []);
         setShowResults(true);
+      } catch (err) {
+        console.error('Search failed:', err);
+        setSearchResults([]);
+        setShowResults(false);
       } finally {
         setSearching(false);
       }

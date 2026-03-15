@@ -72,9 +72,14 @@ export default function ProjectKanban() {
       });
 
       // Persist
-      const success = await updateSiteStatus(siteId, targetStatus);
-      if (!success) {
-        // Revert on failure
+      try {
+        const success = await updateSiteStatus(siteId, targetStatus);
+        if (!success) {
+          // Revert on failure
+          updateProject(activeProject.id, { sites });
+        }
+      } catch (err) {
+        console.error('Failed to update site status:', err);
         updateProject(activeProject.id, { sites });
       }
     },

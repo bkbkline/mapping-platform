@@ -1,6 +1,6 @@
-# Majestic Maps — Industrial Land Intelligence Platform
+# Land Intel — Industrial Land Intelligence Platform
 
-A production-grade industrial land intelligence platform built for developers, investors, and acquisitions teams analyzing industrial land, logistics sites, zoning, parcels, comps, and infrastructure through a fast, map-centric interface.
+A production-grade industrial land intelligence platform for developers, investors, and acquisitions teams. Analyze industrial land, logistics sites, zoning, parcels, comps, and infrastructure through a fast, map-centric interface modeled after Land.id.
 
 **Live:** [https://project-tlho5.vercel.app](https://project-tlho5.vercel.app)
 

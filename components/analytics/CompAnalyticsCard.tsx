@@ -31,7 +31,7 @@ export default function CompAnalyticsCard() {
   const setRadiusMiles = useCompStore((s) => s.setRadiusMiles);
 
   const buckets = useMemo<PriceBucket[]>(() => {
-    if (!analytics || analytics.comps.length === 0) return [];
+    if (!analytics || !analytics.comps || analytics.comps.length === 0) return [];
 
     const prices = analytics.comps
       .map((c) => c.price_per_acre)

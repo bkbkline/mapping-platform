@@ -1,11 +1,16 @@
 'use client';
 
-import { MapContainer } from '@/components/map/MapContainer';
+import dynamic from 'next/dynamic';
 import TopBar from '@/components/map/TopBar';
 import SidebarPanel from '@/components/map/SidebarPanel';
 import MapToolbarNew from '@/components/map/MapToolbarNew';
 import RightPanel from '@/components/panels/RightPanel';
 import { useUIStore } from '@/lib/stores/ui-store';
+
+const MapContainer = dynamic(
+  () => import('@/components/map/MapContainer').then((mod) => mod.MapContainer),
+  { ssr: false }
+);
 
 export default function HomePage() {
   const rightPanelOpen = useUIStore((s) => s.rightPanelOpen);

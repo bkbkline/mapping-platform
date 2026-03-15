@@ -135,10 +135,14 @@ export function MapContainer() {
       const parcelId = feature.properties['id'] as string | undefined;
       if (!parcelId) return;
 
-      const parcel = await fetchParcelById(parcelId);
-      if (parcel) {
-        setSelectedParcel(parcel);
-        openRightPanel('parcel');
+      try {
+        const parcel = await fetchParcelById(parcelId);
+        if (parcel) {
+          setSelectedParcel(parcel);
+          openRightPanel('parcel');
+        }
+      } catch (err) {
+        console.error('Failed to fetch parcel details:', err);
       }
     },
     [setSelectedParcel, openRightPanel]

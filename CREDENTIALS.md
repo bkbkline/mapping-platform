@@ -1,43 +1,58 @@
-# Test Account Credentials
+# Credentials & Environment Variables
 
-## Login
+## Required Environment Variables
+
+Set these in `.env.local` for local development and in the Vercel dashboard for production.
+
+| Variable | Format | Description |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://<ref>.supabase.co` | Supabase project URL (public) |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJ...` JWT | Supabase anonymous key (public, used in browser) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` JWT | Supabase service role key (server-only, bypasses RLS) |
+| `NEXT_PUBLIC_MAPBOX_TOKEN` | `pk.eyJ...` | Mapbox GL access token (public) |
+
+### Optional
+
+| Variable | Format | Description |
+|---|---|---|
+| `SUPABASE_PROJECT_ID` | `heibinbob...` | Supabase project ref (not used in code, for tooling only) |
+
+### Where to set
+
+- **Local:** `.env.local` (gitignored, never committed)
+- **Production:** Vercel dashboard → Settings → Environment Variables
+- **`.env.example`:** template with empty values (committed, safe)
+
+## Test Account
 
 | Field    | Value              |
 |----------|--------------------|
-| Email    | test@landintel.com |
-| Password | LandIntel2024!     |
-| URL      | https://project-tlho5.vercel.app/auth/login |
-
-## Account Details
+| Email    | `test@landintel.com` |
+| Password | `LandIntel2024!` |
+| Login URL | https://project-tlho5.vercel.app/auth/login |
 
 - **Role:** admin
 - **Org ID:** none (data is not org-scoped)
-- **User UUID:** created via `scripts/create-test-user.ts`
-- **Email verified:** yes (auto-confirmed)
+- **Email verified:** yes (auto-confirmed on creation)
 
-## Data Access
-
-The test account has authenticated read access to all tables:
-- `parcels` (15 rows) — Industrial parcels in the Inland Empire
-- `comps` (15 rows) — Industrial land sales
-- `industrial_parks` (5 rows)
-- `zoning_districts` (5 rows)
-- `flood_zones` (5 rows)
-- `infrastructure_assets` (5 rows)
-- `projects`, `notes`, `saved_searches`, `drawings` — user-created (starts empty)
-
-## Service Role Key
-
-The `SUPABASE_SERVICE_ROLE_KEY` environment variable is used by:
-- `scripts/create-test-user.ts` — to create the auth user via admin API
-- `lib/supabase/server.ts` — for server-side API routes (bypasses RLS)
-
-It is loaded from `.env.local` (gitignored) and set as a Vercel environment variable for production.
-
-## Recreating the Test Account
+### Recreating the test account
 
 ```bash
 npx ts-node --esm --skip-project scripts/create-test-user.ts
 ```
 
 The script is idempotent — safe to run multiple times.
+
+## Service Role Key Usage
+
+The `SUPABASE_SERVICE_ROLE_KEY` is used by:
+- `lib/supabase/server.ts` — server-side API routes (bypasses RLS)
+- `scripts/create-test-user.ts` — creating auth users via admin API
+- `app/api/parcels/route.ts`, `app/api/comps/route.ts`, `app/api/search/route.ts` — server-side data queries
+
+## Production Deployment
+
+- **Supabase project:** `heibinbobtezbzhfcybc`
+- **Vercel project:** `mapping` (ID: `prj_dySaPnzxgXO9455p86yjJWDoOpOC`)
+- **GitHub:** `bkbkline/mapping-platform`
+- **Live URL:** https://project-tlho5.vercel.app
