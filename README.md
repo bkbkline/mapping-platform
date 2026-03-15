@@ -4,6 +4,18 @@ A production-grade industrial land intelligence platform built for developers, i
 
 **Live:** [https://project-tlho5.vercel.app](https://project-tlho5.vercel.app)
 
+## Test Account
+
+Log in immediately with the demo account — no signup required:
+
+| Field    | Value              |
+|----------|--------------------|
+| Email    | `test@landintel.com` |
+| Password | `LandIntel2024!`     |
+| URL      | [https://project-tlho5.vercel.app/auth/login](https://project-tlho5.vercel.app/auth/login) |
+
+The test account has admin access to all seeded data (15 parcels, 15 comps, zoning districts, flood zones, industrial parks, infrastructure assets). See `CREDENTIALS.md` for full details.
+
 ## Features
 
 ### Map Engine
