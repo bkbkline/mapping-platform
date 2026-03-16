@@ -9,6 +9,7 @@ type ToolId =
   | 'draw-circle'
   | 'draw-line'
   | 'draw-point'
+  | 'place-pin'
   | 'measure-distance'
   | 'fit-bounds'
   | 'fullscreen'
@@ -87,7 +88,7 @@ const TOOL_GROUPS: ToolDef[][] = [
   // Group 3 - Markers
   [
     {
-      id: 'draw-point',
+      id: 'place-pin',
       label: 'Pin / Marker',
       icon: (
         <svg width={ICON_SIZE} height={ICON_SIZE} viewBox="0 0 24 24" fill="none" stroke={STROKE} strokeWidth={SW} strokeLinecap={CAP} strokeLinejoin={JOIN}>

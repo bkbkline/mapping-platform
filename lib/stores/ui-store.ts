@@ -10,6 +10,7 @@ type ActiveTool =
   | 'draw-polygon'
   | 'draw-line'
   | 'draw-point'
+  | 'place-pin'
   | 'measure-distance'
   | 'measure-area'
   | 'fit-bounds'
