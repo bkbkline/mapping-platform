@@ -105,7 +105,7 @@ export default function DashboardPage() {
         const [mapsRes, parcelsRes, layersRes] = await Promise.all([
           supabase.from('maps').select('id', { count: 'exact', head: true }),
           supabase.from('parcels').select('id', { count: 'exact', head: true }),
-          supabase.from('layers').select('id', { count: 'exact', head: true }),
+          supabase.from('map_layers').select('id', { count: 'exact', head: true }),
         ]);
 
         setMapsCount(mapsRes.count ?? 0);
