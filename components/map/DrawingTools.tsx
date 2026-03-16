@@ -326,20 +326,18 @@ export function DrawingTools({ map }: DrawingToolsProps) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      const geomType = lastDrawnFeature.geometry.type as string;
       await supabase.from('annotations').insert({
-        created_by: user.id,
+        owner_id: user.id,
         geometry: lastDrawnFeature.geometry,
-        properties: {
-          tool_type: activeTool,
-          label: '',
-          color: '#f59e0b',
-          ...(measurement ? {
-            measurement_type: measurement.type,
-            measurement_value: measurement.value,
-            measurement_formatted: measurement.formattedValue,
-          } : {}),
-        },
-        type: activeTool ?? 'draw-polygon',
+        geometry_type: geomType,
+        label: measurement ? `${measurement.formattedValue}` : '',
+        color: '#f59e0b',
+        fill_opacity: 0.2,
+        stroke_width: 2,
+        ...(measurement ? {
+          measurement: { type: measurement.type, value: measurement.value, formatted: measurement.formattedValue },
+        } : {}),
       });
       setLastDrawnFeature(null);
       setMeasurement(null);
@@ -359,11 +357,13 @@ export function DrawingTools({ map }: DrawingToolsProps) {
       if (!user) return;
 
       await supabase.from('annotations').insert({
-        created_by: user.id,
+        owner_id: user.id,
         geometry: { type: 'Point', coordinates: [pinPopup.lng, pinPopup.lat] },
-        properties: { label: pinLabel, note: pinNote, color: '#f59e0b', tool_type: 'pin' },
-        type: 'pin',
-        label: pinLabel,
+        geometry_type: 'Point',
+        label: pinLabel || 'Pin',
+        notes: pinNote,
+        color: '#f59e0b',
+        icon: 'pin',
       });
 
       // Add visible marker on map
@@ -405,7 +405,7 @@ export function DrawingTools({ map }: DrawingToolsProps) {
 
         const draw = drawRef.current;
         // Add non-pin features to MapboxDraw
-        const drawFeatures = data.filter(a => a.type !== 'pin' && a.geometry);
+        const drawFeatures = data.filter(a => a.icon !== 'pin' && a.geometry_type !== 'Point' && a.geometry);
         if (draw && drawFeatures.length > 0) {
           const fc: GeoJSON.FeatureCollection = {
             type: 'FeatureCollection',
@@ -413,24 +413,24 @@ export function DrawingTools({ map }: DrawingToolsProps) {
               type: 'Feature' as const,
               id: a.id,
               geometry: a.geometry as GeoJSON.Geometry,
-              properties: { ...(a.properties as Record<string, unknown> ?? {}), db_id: a.id },
+              properties: { db_id: a.id, label: a.label, color: a.color },
             })),
           };
           try { draw.add(fc); } catch { /* may fail if styles not ready */ }
         }
 
-        // Add pin annotations as markers
-        const pins = data.filter(a => a.type === 'pin' && a.geometry);
+        // Add pin/point annotations as markers
+        const pins = data.filter(a => a.icon === 'pin' || a.geometry_type === 'Point');
         for (const pin of pins) {
           const geom = pin.geometry as GeoJSON.Point;
-          const props = pin.properties as Record<string, unknown> ?? {};
+          if (!geom?.coordinates) continue;
           const coords = geom.coordinates as [number, number];
-          const marker = new mapboxgl.Marker({ color: (props.color as string) || '#f59e0b' })
+          const marker = new mapboxgl.Marker({ color: pin.color || '#f59e0b' })
             .setLngLat(coords)
             .setPopup(new mapboxgl.Popup({ offset: 25 }).setHTML(
               `<div style="font-family:Inter,system-ui;font-size:13px">
-                <strong>${props.label || pin.label || 'Pin'}</strong>
-                ${props.note ? `<p style="margin:4px 0 0;color:#6b7280">${props.note}</p>` : ''}
+                <strong>${pin.label || 'Pin'}</strong>
+                ${pin.notes ? `<p style="margin:4px 0 0;color:#6b7280">${pin.notes}</p>` : ''}
               </div>`
             ))
             .addTo(map);
