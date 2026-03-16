@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useMapStore } from '@/lib/stores/map-store';
 import { useLayerStore } from '@/lib/stores/layer-store';
 import { supabase } from '@/lib/supabase/client';
@@ -8,7 +9,7 @@ import { supabase } from '@/lib/supabase/client';
 /** Map record from Supabase */
 interface MapRecord {
   id: string;
-  name: string | null;
+  title: string | null;
   description: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
@@ -51,7 +52,7 @@ const BASEMAPS = [
 ];
 
 // ── Section definitions ─────────────────────────────────────────────────────
-type SectionId = 'basemap' | 'overlays' | 'my-items' | 'gallery' | 'add-items';
+type SectionId = 'basemap' | 'overlays' | 'my-items' | 'gallery' | 'dashboard';
 
 interface SectionDef {
   id: SectionId;
@@ -106,13 +107,11 @@ const SECTIONS: SectionDef[] = [
     ),
   },
   {
-    id: 'add-items',
-    label: 'Add Items',
+    id: 'dashboard',
+    label: 'Dashboard',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="16" />
-        <line x1="8" y1="12" x2="16" y2="12" />
+        <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1" />
       </svg>
     ),
   },
@@ -142,12 +141,13 @@ function Chevron({ expanded }: { expanded: boolean }) {
 
 // ── Main component ──────────────────────────────────────────────────────────
 export default function SidebarPanel() {
-  const [expandedSection, setExpandedSection] = useState<SectionId | null>('overlays');
+  const [expandedSection, setExpandedSection] = useState<SectionId | null>(null);
   const [collapsed, setCollapsed] = useState(false);
   const [mapsOpen, setMapsOpen] = useState(false);
   const [maps, setMaps] = useState<MapRecord[]>([]);
   const [mapsLoading, setMapsLoading] = useState(false);
 
+  const router = useRouter();
   const { mapRef, activeBasemap, setActiveBasemap, activeMapId, setActiveMapId } = useMapStore();
   const { layers, toggleLayer } = useLayerStore();
 
@@ -167,9 +167,13 @@ export default function SidebarPanel() {
     })();
   }, [mapsOpen]);
 
-  const activeMapName = maps.find((m) => m.id === activeMapId)?.name ?? null;
+  const activeMapName = maps.find((m) => m.id === activeMapId)?.title ?? null;
 
   const toggleSection = (id: SectionId) => {
+    if (id === 'dashboard') {
+      router.push('/dashboard');
+      return;
+    }
     setExpandedSection((prev) => (prev === id ? null : id));
   };
 
@@ -340,7 +344,7 @@ export default function SidebarPanel() {
                         flexShrink: 0,
                       }}
                     />
-                    {m.name ?? 'Untitled Map'}
+                    {m.title ?? 'Untitled Map'}
                   </div>
                 ))
               )}
@@ -532,7 +536,7 @@ export default function SidebarPanel() {
                     )}
                     {section.id === 'my-items' && <MyItemsContent />}
                     {section.id === 'gallery' && <GalleryContent />}
-                    {section.id === 'add-items' && <AddItemsContent />}
+                    {/* Dashboard navigates away; no expandable content */}
                   </div>
                 )}
               </div>
@@ -809,75 +813,3 @@ function GalleryContent() {
   );
 }
 
-// ── Add Items Content ───────────────────────────────────────────────────────
-function AddItemsContent() {
-  const actions: { label: string; icon: React.ReactNode }[] = [
-    {
-      label: 'Upload File',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="16 16 12 12 8 16" />
-          <line x1="12" y1="12" x2="12" y2="21" />
-          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Draw on Map',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M12 19l7-7 3 3-7 7-3-3z" />
-          <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z" />
-          <path d="M2 2l7.586 7.586" />
-          <circle cx="11" cy="11" r="2" />
-        </svg>
-      ),
-    },
-    {
-      label: 'Add from URL',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-        </svg>
-      ),
-    },
-    {
-      label: 'New Annotation',
-      icon: (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
-      ),
-    },
-  ];
-
-  return (
-    <div>
-      {actions.map((action) => (
-        <div
-          key={action.label}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 12px',
-            fontSize: 13,
-            color: '#374151',
-            cursor: 'pointer',
-          }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = '#f9fafb';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-          }}
-        >
-          {action.icon}
-          {action.label}
-        </div>
-      ))}
-    </div>
-  );
-}

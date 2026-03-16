@@ -437,29 +437,191 @@ export default function TopBar() {
           Share
         </button>
 
-        {/* User Avatar */}
-        <button
-          onClick={handleSignOut}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            border: 'none',
-            background: '#6366f1',
-            color: '#ffffff',
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 0,
-          }}
-          title="Sign out"
-        >
-          TU
-        </button>
+        {/* User Avatar with Dropdown */}
+        <UserAvatarMenu onSignOut={handleSignOut} />
       </div>
+    </div>
+  );
+}
+
+// ── User Avatar Menu ──────────────────────────────────────────────────────────
+
+function UserAvatarMenu({ onSignOut }: { onSignOut: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  // Fetch user email on mount
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+    });
+  }, []);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={menuRef} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: '50%',
+          border: 'none',
+          background: '#6366f1',
+          color: '#ffffff',
+          fontSize: 12,
+          fontWeight: 600,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 0,
+        }}
+        title="User menu"
+      >
+        TU
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 40,
+            right: 0,
+            width: 220,
+            background: '#ffffff',
+            borderRadius: 10,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+            border: '1px solid #e5e7eb',
+            zIndex: 60,
+            overflow: 'hidden',
+          }}
+        >
+          {/* User email */}
+          <div
+            style={{
+              padding: '12px 14px',
+              borderBottom: '1px solid #f3f4f6',
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>
+              Test User
+            </div>
+            {userEmail && (
+              <div
+                style={{
+                  fontSize: 12,
+                  color: '#6b7280',
+                  marginTop: 2,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {userEmail}
+              </div>
+            )}
+          </div>
+
+          {/* Settings */}
+          <button
+            onClick={() => {
+              setOpen(false);
+              router.push('/settings');
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '10px 14px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: 13,
+              color: '#374151',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = '#f9fafb';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#6b7280"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+            Settings
+          </button>
+
+          {/* Sign Out */}
+          <button
+            onClick={() => {
+              setOpen(false);
+              onSignOut();
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              width: '100%',
+              padding: '10px 14px',
+              border: 'none',
+              borderTop: '1px solid #f3f4f6',
+              background: 'transparent',
+              cursor: 'pointer',
+              fontSize: 13,
+              color: '#dc2626',
+              textAlign: 'left',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#dc2626"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Sign Out
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -86,7 +86,7 @@ const STAT_ICONS = {
 
 interface MapRecord {
   id: string;
-  name: string | null;
+  title: string | null;
   created_at: string;
 }
 
@@ -115,7 +115,7 @@ export default function DashboardPage() {
 
         const { data: maps } = await supabase
           .from('maps')
-          .select('id, name, created_at')
+          .select('id, title, created_at')
           .order('created_at', { ascending: false })
           .limit(6);
 
@@ -455,7 +455,7 @@ export default function DashboardPage() {
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    {map.name ?? 'Untitled Map'}
+                    {map.title ?? 'Untitled Map'}
                   </div>
                   <div style={{ fontSize: 12, color: '#6b7280' }}>
                     Created {new Date(map.created_at).toLocaleDateString()}
