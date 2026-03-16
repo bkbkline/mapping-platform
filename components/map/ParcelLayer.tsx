@@ -45,14 +45,45 @@ function parcelsToGeoJSON(parcels: Parcel[]): GeoJSON.FeatureCollection {
   const features: ParcelFeature[] = [];
 
   for (const parcel of parcels) {
-    if (!parcel.geometry) continue;
+    // Try PostGIS geometry first, then fall back to raw_attributes.geojson
+    let geom: GeoJSON.Polygon | null = parcel.geometry;
+    if (!geom && parcel.raw_attributes) {
+      const ra = parcel.raw_attributes as Record<string, unknown>;
+      if (ra.geojson && typeof ra.geojson === 'object') {
+        geom = ra.geojson as GeoJSON.Polygon;
+      } else if (ra.lat && ra.lng) {
+        // Create a small polygon from point coordinates
+        const lat = ra.lat as number;
+        const lng = ra.lng as number;
+        const acres = (parcel.acreage as number) || 5;
+        const side = Math.sqrt(acres) * 0.00057;
+        const lngSide = side * 1.2;
+        geom = {
+          type: 'Polygon',
+          coordinates: [[
+            [lng - lngSide/2, lat + side/2],
+            [lng + lngSide/2, lat + side/2],
+            [lng + lngSide/2, lat - side/2],
+            [lng - lngSide/2, lat - side/2],
+            [lng - lngSide/2, lat + side/2],
+          ]]
+        };
+      }
+    }
+    if (!geom) continue;
 
-    const { geometry, ...properties } = parcel;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { geometry: _unusedGeom, ...properties } = parcel;
     features.push({
       type: 'Feature',
       id: parcel.id,
-      geometry,
-      properties,
+      geometry: geom,
+      properties: {
+        ...properties,
+        // Flatten useful raw_attributes for popup/tooltip
+        name: (parcel.raw_attributes as Record<string, unknown>)?.name as string ?? parcel.situs_address,
+        status: (parcel.raw_attributes as Record<string, unknown>)?.status as string ?? 'active',
+      },
     } as ParcelFeature);
   }
 

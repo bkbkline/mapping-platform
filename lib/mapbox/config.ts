@@ -3,11 +3,11 @@ import type { BasemapStyle } from '@/types/map';
 /** Mapbox access token */
 export const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? '';
 
-/** Default map center (Los Angeles / Inland Empire area) */
-export const DEFAULT_CENTER: [number, number] = [-117.9, 33.95];
+/** Default map center (Reno NV industrial corridor) */
+export const DEFAULT_CENTER: [number, number] = [-119.8138, 39.5296];
 
 /** Default zoom level */
-export const DEFAULT_ZOOM = 10;
+export const DEFAULT_ZOOM = 11;
 
 /** Available basemap styles */
 export const BASEMAPS: BasemapStyle[] = [
@@ -38,7 +38,7 @@ export const BASEMAPS: BasemapStyle[] = [
 ];
 
 /** Minimum zoom level to load parcels */
-export const PARCEL_MIN_ZOOM = 13;
+export const PARCEL_MIN_ZOOM = 8;
 
 /** Maximum features per viewport query */
 export const MAX_VIEWPORT_FEATURES = 5000;
