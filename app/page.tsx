@@ -5,7 +5,9 @@ import TopBar from '@/components/map/TopBar';
 import SidebarPanel from '@/components/map/SidebarPanel';
 import MapToolbarNew from '@/components/map/MapToolbarNew';
 import RightPanel from '@/components/panels/RightPanel';
+import PropertyPanel from '@/components/map/PropertyPanel';
 import { useUIStore } from '@/lib/stores/ui-store';
+import { useParcelStore } from '@/lib/stores/parcel-store';
 
 const MapContainer = dynamic(
   () => import('@/components/map/MapContainer').then((mod) => mod.MapContainer),
@@ -14,6 +16,7 @@ const MapContainer = dynamic(
 
 export default function HomePage() {
   const rightPanelOpen = useUIStore((s) => s.rightPanelOpen);
+  const selectedParcel = useParcelStore((s) => s.selectedParcel);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
@@ -33,12 +36,15 @@ export default function HomePage() {
       {/* Map Toolbar - floating top-right, z-40 */}
       <MapToolbarNew />
 
-      {/* Right Panel - parcel detail */}
-      {rightPanelOpen && (
+      {/* Right Panel - parcel detail (legacy) */}
+      {rightPanelOpen && !selectedParcel && (
         <div className="absolute top-[52px] right-0 bottom-0 z-40">
           <RightPanel />
         </div>
       )}
+
+      {/* Property Panel - shown when a parcel is selected */}
+      {selectedParcel && <PropertyPanel />}
     </div>
   );
 }

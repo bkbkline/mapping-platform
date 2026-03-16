@@ -1,40 +1,136 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { searchParcels } from '@/lib/queries/parcels';
 import { useMapStore } from '@/lib/stores/map-store';
 import { getCenter } from '@/lib/geospatial/utils';
 
+interface SearchResult {
+  type: 'parcel' | 'geocoded';
+  label: string;
+  sublabel: string;
+  lng: number;
+  lat: number;
+  zoom: number;
+}
+
 export default function TopBar() {
   const [query, setQuery] = useState('');
   const [searching, setSearching] = useState(false);
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const flyTo = useMapStore((s) => s.flyTo);
 
-  const handleSearch = async () => {
-    const trimmed = query.trim();
-    if (!trimmed) return;
+  /** Run both parcel + geocoding searches */
+  const executeSearch = useCallback(async (q: string) => {
+    const trimmed = q.trim();
+    if (!trimmed) {
+      setResults([]);
+      setShowDropdown(false);
+      return;
+    }
     setSearching(true);
     try {
-      const results = await searchParcels(trimmed, 1);
-      if (results.length > 0 && results[0].geometry) {
-        const [lng, lat] = getCenter(results[0].geometry);
-        flyTo(lng, lat, 15);
+      const [parcelResults, geocodeResponse] = await Promise.allSettled([
+        searchParcels(trimmed, 5),
+        fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(trimmed)}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_TOKEN}&country=US&types=address,place&limit=5`
+        ).then((r) => r.json()),
+      ]);
+
+      const merged: SearchResult[] = [];
+
+      // Parcel results
+      if (parcelResults.status === 'fulfilled') {
+        for (const p of parcelResults.value) {
+          if (p.geometry) {
+            const [lng, lat] = getCenter(p.geometry);
+            merged.push({
+              type: 'parcel',
+              label: p.situs_address || p.apn || 'Unknown Parcel',
+              sublabel: p.county || '',
+              lng,
+              lat,
+              zoom: 16,
+            });
+          }
+        }
       }
+
+      // Geocoded results
+      if (geocodeResponse.status === 'fulfilled' && geocodeResponse.value?.features) {
+        for (const f of geocodeResponse.value.features) {
+          merged.push({
+            type: 'geocoded',
+            label: f.place_name || f.text || '',
+            sublabel: 'Geocoded',
+            lng: f.center[0],
+            lat: f.center[1],
+            zoom: f.place_type?.includes('address') ? 17 : 13,
+          });
+        }
+      }
+
+      setResults(merged);
+      setShowDropdown(merged.length > 0);
     } catch (err) {
       console.error('Search failed:', err);
     } finally {
       setSearching(false);
     }
+  }, []);
+
+  /** Debounce input changes */
+  const handleChange = (value: string) => {
+    setQuery(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      executeSearch(value);
+    }, 300);
+  };
+
+  /** Select a result */
+  const handleSelect = (r: SearchResult) => {
+    flyTo(r.lng, r.lat, r.zoom);
+    setShowDropdown(false);
+    setQuery(r.label);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
-      handleSearch();
+      if (results.length > 0) {
+        handleSelect(results[0]);
+      }
+    }
+    if (e.key === 'Escape') {
+      setShowDropdown(false);
     }
   };
+
+  /** Close dropdown on outside click */
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  /** Cleanup debounce on unmount */
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -82,83 +178,165 @@ export default function TopBar() {
         </div>
 
         {/* Smart Search */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            width: 340,
-            height: 36,
-            border: '1px solid #e5e7eb',
-            borderRadius: 9999,
-            overflow: 'hidden',
-            background: '#ffffff',
-          }}
-        >
-          <span
+        <div style={{ position: 'relative' }}>
+          <div
             style={{
               display: 'flex',
               alignItems: 'center',
-              padding: '0 10px',
-              height: '100%',
-              background: '#2563eb',
-              color: '#ffffff',
-              fontSize: 11,
-              fontWeight: 600,
-              whiteSpace: 'nowrap',
-              letterSpacing: 0.2,
+              width: 340,
+              height: 36,
+              border: '1px solid #e5e7eb',
+              borderRadius: 9999,
+              overflow: 'hidden',
+              background: '#ffffff',
             }}
           >
-            Smart Search
-          </span>
-          <input
-            type="text"
-            placeholder="Search Owner Name, Address, Parcel ID"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={searching}
-            style={{
-              flex: 1,
-              height: '100%',
-              border: 'none',
-              outline: 'none',
-              fontSize: 12,
-              padding: '0 8px',
-              color: '#374151',
-              background: 'transparent',
-            }}
-          />
-          <button
-            onClick={handleSearch}
-            disabled={searching}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 34,
-              height: '100%',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              flexShrink: 0,
-              padding: 0,
-            }}
-            title="Search"
-          >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="#6b7280"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+            <span
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '0 10px',
+                height: '100%',
+                background: '#2563eb',
+                color: '#ffffff',
+                fontSize: 11,
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                letterSpacing: 0.2,
+              }}
             >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </button>
+              Smart Search
+            </span>
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search Owner Name, Address, Parcel ID"
+              value={query}
+              onChange={(e) => handleChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onFocus={() => { if (results.length > 0) setShowDropdown(true); }}
+              disabled={searching}
+              style={{
+                flex: 1,
+                height: '100%',
+                border: 'none',
+                outline: 'none',
+                fontSize: 12,
+                padding: '0 8px',
+                color: '#374151',
+                background: 'transparent',
+              }}
+            />
+            <button
+              onClick={() => executeSearch(query)}
+              disabled={searching}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 34,
+                height: '100%',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                flexShrink: 0,
+                padding: 0,
+              }}
+              title="Search"
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#6b7280"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Search Results Dropdown */}
+          {showDropdown && results.length > 0 && (
+            <div
+              ref={dropdownRef}
+              style={{
+                position: 'absolute',
+                top: 40,
+                left: 0,
+                width: 340,
+                maxHeight: 320,
+                overflowY: 'auto',
+                background: '#ffffff',
+                borderRadius: 10,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
+                zIndex: 50,
+                border: '1px solid #e5e7eb',
+              }}
+            >
+              {results.map((r, i) => (
+                <button
+                  key={`${r.type}-${i}`}
+                  onClick={() => handleSelect(r)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: 'none',
+                    borderBottom: i < results.length - 1 ? '1px solid #f3f4f6' : 'none',
+                    background: 'transparent',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    fontSize: 13,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#f9fafb'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'transparent'; }}
+                >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div
+                      style={{
+                        fontWeight: 500,
+                        color: '#1f2937',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {r.label}
+                    </div>
+                    {r.sublabel && (
+                      <div style={{ fontSize: 11, color: '#6b7280', marginTop: 1 }}>
+                        {r.sublabel}
+                      </div>
+                    )}
+                  </div>
+                  {r.type === 'geocoded' && (
+                    <span
+                      style={{
+                        marginLeft: 8,
+                        padding: '2px 6px',
+                        background: '#eff6ff',
+                        color: '#2563eb',
+                        fontSize: 10,
+                        fontWeight: 600,
+                        borderRadius: 4,
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                    >
+                      Geocoded
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -1,8 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMapStore } from '@/lib/stores/map-store';
 import { useLayerStore } from '@/lib/stores/layer-store';
+import { supabase } from '@/lib/supabase/client';
+
+/** Map record from Supabase */
+interface MapRecord {
+  id: string;
+  name: string | null;
+  description: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
 
 // ── Layer metadata mapping ──────────────────────────────────────────────────
 const LAYER_META: Record<string, { name: string; desc: string; color: string }> = {
@@ -133,9 +143,31 @@ function Chevron({ expanded }: { expanded: boolean }) {
 // ── Main component ──────────────────────────────────────────────────────────
 export default function SidebarPanel() {
   const [expandedSection, setExpandedSection] = useState<SectionId | null>('overlays');
+  const [collapsed, setCollapsed] = useState(false);
+  const [mapsOpen, setMapsOpen] = useState(false);
+  const [maps, setMaps] = useState<MapRecord[]>([]);
+  const [mapsLoading, setMapsLoading] = useState(false);
 
-  const { mapRef, activeBasemap, setActiveBasemap } = useMapStore();
+  const { mapRef, activeBasemap, setActiveBasemap, activeMapId, setActiveMapId } = useMapStore();
   const { layers, toggleLayer } = useLayerStore();
+
+  // Fetch maps when dropdown is opened
+  useEffect(() => {
+    if (!mapsOpen) return;
+    setMapsLoading(true);
+    (async () => {
+      try {
+        const { data } = await supabase.from('maps').select('*');
+        setMaps((data as MapRecord[]) ?? []);
+      } catch {
+        // ignore fetch errors
+      } finally {
+        setMapsLoading(false);
+      }
+    })();
+  }, [mapsOpen]);
+
+  const activeMapName = maps.find((m) => m.id === activeMapId)?.name ?? null;
 
   const toggleSection = (id: SectionId) => {
     setExpandedSection((prev) => (prev === id ? null : id));
@@ -171,78 +203,198 @@ export default function SidebarPanel() {
         top: 52,
         left: 0,
         bottom: 0,
-        width: 240,
+        width: collapsed ? 48 : 240,
         zIndex: 40,
-        overflowY: 'auto',
+        overflowY: collapsed ? 'hidden' : 'auto',
+        overflowX: 'hidden',
         background: '#ffffff',
         boxShadow: '2px 0 8px rgba(0,0,0,0.06)',
+        transition: 'width 200ms ease',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {/* Sidebar Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 12px',
-          borderBottom: '1px solid #e5e7eb',
-          background: '#ffffff',
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-            <line x1="8" y1="2" x2="8" y2="18" />
-            <line x1="16" y1="6" x2="16" y2="22" />
-          </svg>
-          <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Production Map</span>
-        </div>
-        <button
+      {!collapsed && (
+        <div
           style={{
-            width: 28,
-            height: 28,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            border: 'none',
-            background: 'transparent',
-            cursor: 'pointer',
-            borderRadius: 4,
-            padding: 0,
+            justifyContent: 'space-between',
+            padding: '10px 12px',
+            borderBottom: '1px solid #e5e7eb',
+            background: '#ffffff',
+            flexShrink: 0,
           }}
-          title="Map management"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="3" width="7" height="7" />
-            <rect x="14" y="3" width="7" height="7" />
-            <rect x="3" y="14" width="7" height="7" />
-            <rect x="14" y="14" width="7" height="7" />
-          </svg>
-        </button>
-      </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+              <line x1="8" y1="2" x2="8" y2="18" />
+              <line x1="16" y1="6" x2="16" y2="22" />
+            </svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Production Map</span>
+          </div>
+          <button
+            style={{
+              width: 28,
+              height: 28,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              borderRadius: 4,
+              padding: 0,
+            }}
+            title="Map management"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
-      {/* Accordion sections */}
-      {SECTIONS.map((section) => {
-        const isExpanded = expandedSection === section.id;
+      {/* My Maps Section */}
+      {!collapsed && (
+        <div style={{ borderBottom: '1px solid #e5e7eb', flexShrink: 0 }}>
+          <button
+            onClick={() => setMapsOpen(!mapsOpen)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              width: '100%',
+              padding: '8px 12px',
+              border: 'none',
+              background: 'transparent',
+              cursor: 'pointer',
+              gap: 8,
+              fontFamily: 'Inter, sans-serif',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = '#f9fafb';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+              <line x1="8" y1="2" x2="8" y2="18" />
+              <line x1="16" y1="6" x2="16" y2="22" />
+            </svg>
+            <span style={{ flex: 1, textAlign: 'left', fontSize: 12, fontWeight: 600, color: '#374151' }}>
+              {activeMapName ?? 'Select Map'}
+            </span>
+            <Chevron expanded={mapsOpen} />
+          </button>
 
-        return (
-          <div key={section.id}>
-            {/* Section header */}
+          {mapsOpen && (
+            <div style={{ padding: '0 0 4px' }}>
+              {mapsLoading ? (
+                <div style={{ padding: '8px 12px', fontSize: 12, color: '#9ca3af' }}>
+                  Loading maps...
+                </div>
+              ) : maps.length === 0 ? (
+                <div style={{ padding: '8px 12px', fontSize: 12, color: '#9ca3af' }}>
+                  No maps found
+                </div>
+              ) : (
+                maps.map((m) => (
+                  <div
+                    key={m.id}
+                    onClick={() => {
+                      setActiveMapId(m.id);
+                      setMapsOpen(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '6px 12px 6px 36px',
+                      fontSize: 12,
+                      color: m.id === activeMapId ? '#2563eb' : '#374151',
+                      fontWeight: m.id === activeMapId ? 600 : 400,
+                      cursor: 'pointer',
+                      background: 'transparent',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = '#f9fafb';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent';
+                    }}
+                  >
+                    <span
+                      style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        background: m.id === activeMapId ? '#2563eb' : 'transparent',
+                        border: m.id === activeMapId ? 'none' : '1px solid #d1d5db',
+                        flexShrink: 0,
+                      }}
+                    />
+                    {m.name ?? 'Untitled Map'}
+                  </div>
+                ))
+              )}
+
+              {/* + New Map */}
+              <div
+                onClick={() => console.log('[SidebarPanel] New Map placeholder')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '6px 12px 6px 36px',
+                  fontSize: 12,
+                  color: '#2563eb',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  marginTop: 2,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = '#eff6ff';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = 'transparent';
+                }}
+              >
+                + New Map
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Collapsed: show only section icons */}
+      {collapsed ? (
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 8 }}>
+          {SECTIONS.map((section) => (
             <button
-              onClick={() => toggleSection(section.id)}
+              key={section.id}
+              onClick={() => {
+                setCollapsed(false);
+                setExpandedSection(section.id);
+              }}
               style={{
+                width: 48,
+                height: 40,
                 display: 'flex',
                 alignItems: 'center',
-                width: '100%',
-                height: 40,
-                padding: '0 12px',
+                justifyContent: 'center',
                 border: 'none',
-                borderLeft: isExpanded ? '2px solid #2563eb' : '2px solid transparent',
                 background: 'transparent',
                 cursor: 'pointer',
-                gap: 8,
-                fontFamily: 'Inter, sans-serif',
+                padding: 0,
               }}
+              title={section.label}
               onMouseEnter={(e) => {
                 (e.currentTarget as HTMLElement).style.background = '#f9fafb';
               }}
@@ -251,106 +403,185 @@ export default function SidebarPanel() {
               }}
             >
               {section.icon}
-              <span
-                style={{
-                  flex: 1,
-                  textAlign: 'left',
-                  fontSize: 13,
-                  fontWeight: isExpanded ? 600 : 500,
-                  color: isExpanded ? '#111827' : '#374151',
-                }}
-              >
-                {section.label}
-              </span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        /* Expanded: Accordion sections */
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {SECTIONS.map((section) => {
+            const isExpanded = expandedSection === section.id;
 
-              {/* Section-specific right elements */}
-              {section.id === 'basemap' && (
-                <span
+            return (
+              <div key={section.id}>
+                {/* Section header */}
+                <button
+                  onClick={() => toggleSection(section.id)}
                   style={{
-                    fontSize: 11,
-                    background: '#f3f4f6',
-                    color: '#374151',
-                    borderRadius: 9999,
-                    padding: '2px 8px',
-                    fontWeight: 500,
-                    marginRight: 4,
-                  }}
-                >
-                  {currentBasemapLabel}
-                </span>
-              )}
-
-              {section.id === 'overlays' && (
-                <span
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleToggleAll();
-                  }}
-                  style={{
-                    display: 'inline-flex',
+                    display: 'flex',
                     alignItems: 'center',
-                    gap: 4,
-                    fontSize: 11,
-                    color: allLayersOn ? '#2563eb' : '#6b7280',
-                    fontWeight: 500,
-                    marginRight: 4,
+                    width: '100%',
+                    height: 40,
+                    padding: '0 12px',
+                    border: 'none',
+                    borderLeft: isExpanded ? '2px solid #2563eb' : '2px solid transparent',
+                    background: 'transparent',
                     cursor: 'pointer',
+                    gap: 8,
+                    fontFamily: 'Inter, sans-serif',
+                  }}
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = '#f9fafb';
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLElement).style.background = 'transparent';
                   }}
                 >
-                  All
+                  {section.icon}
                   <span
                     style={{
-                      width: 28,
-                      height: 16,
-                      borderRadius: 9999,
-                      background: allLayersOn ? '#2563eb' : '#d1d5db',
-                      position: 'relative',
-                      display: 'inline-block',
-                      transition: 'background 150ms ease',
+                      flex: 1,
+                      textAlign: 'left',
+                      fontSize: 13,
+                      fontWeight: isExpanded ? 600 : 500,
+                      color: isExpanded ? '#111827' : '#374151',
                     }}
                   >
+                    {section.label}
+                  </span>
+
+                  {/* Section-specific right elements */}
+                  {section.id === 'basemap' && (
                     <span
                       style={{
-                        position: 'absolute',
-                        top: 2,
-                        left: allLayersOn ? 14 : 2,
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        transition: 'left 150ms ease',
+                        fontSize: 11,
+                        background: '#f3f4f6',
+                        color: '#374151',
+                        borderRadius: 9999,
+                        padding: '2px 8px',
+                        fontWeight: 500,
+                        marginRight: 4,
                       }}
-                    />
-                  </span>
-                </span>
-              )}
+                    >
+                      {currentBasemapLabel}
+                    </span>
+                  )}
 
-              <Chevron expanded={isExpanded} />
-            </button>
+                  {section.id === 'overlays' && (
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleAll();
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        fontSize: 11,
+                        color: allLayersOn ? '#2563eb' : '#6b7280',
+                        fontWeight: 500,
+                        marginRight: 4,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      All
+                      <span
+                        style={{
+                          width: 28,
+                          height: 16,
+                          borderRadius: 9999,
+                          background: allLayersOn ? '#2563eb' : '#d1d5db',
+                          position: 'relative',
+                          display: 'inline-block',
+                          transition: 'background 150ms ease',
+                        }}
+                      >
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: 2,
+                            left: allLayersOn ? 14 : 2,
+                            width: 12,
+                            height: 12,
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            transition: 'left 150ms ease',
+                          }}
+                        />
+                      </span>
+                    </span>
+                  )}
 
-            {/* Section content */}
-            {isExpanded && (
-              <div>
-                {section.id === 'basemap' && (
-                  <BasemapContent
-                    activeBasemap={activeBasemap}
-                    onSelect={handleBasemapChange}
-                  />
+                  <Chevron expanded={isExpanded} />
+                </button>
+
+                {/* Section content */}
+                {isExpanded && (
+                  <div>
+                    {section.id === 'basemap' && (
+                      <BasemapContent
+                        activeBasemap={activeBasemap}
+                        onSelect={handleBasemapChange}
+                      />
+                    )}
+                    {section.id === 'overlays' && (
+                      <OverlaysContent
+                        layers={layers}
+                        onToggle={toggleLayer}
+                      />
+                    )}
+                    {section.id === 'my-items' && <MyItemsContent />}
+                    {section.id === 'gallery' && <GalleryContent />}
+                    {section.id === 'add-items' && <AddItemsContent />}
+                  </div>
                 )}
-                {section.id === 'overlays' && (
-                  <OverlaysContent
-                    layers={layers}
-                    onToggle={toggleLayer}
-                  />
-                )}
-                {section.id === 'my-items' && <MyItemsContent />}
-                {section.id === 'gallery' && <GalleryContent />}
-                {section.id === 'add-items' && <AddItemsContent />}
               </div>
-            )}
-          </div>
-        );
-      })}
+            );
+          })}
+        </div>
+      )}
+
+      {/* Collapse/Expand toggle button at bottom */}
+      <button
+        onClick={() => setCollapsed((prev) => !prev)}
+        style={{
+          width: '100%',
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          border: 'none',
+          borderTop: '1px solid #e5e7eb',
+          background: '#f9fafb',
+          cursor: 'pointer',
+          padding: 0,
+          flexShrink: 0,
+        }}
+        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.background = '#f3f4f6';
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.background = '#f9fafb';
+        }}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#6b7280"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          style={{
+            transition: 'transform 200ms ease',
+            transform: collapsed ? 'rotate(0deg)' : 'rotate(180deg)',
+          }}
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
     </div>
   );
 }

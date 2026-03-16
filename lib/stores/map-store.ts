@@ -6,9 +6,11 @@ interface MapState {
   mapRef: MapRef;
   viewport: ViewportState;
   activeBasemap: string;
+  activeMapId: string | null;
   setMapRef: (ref: MapRef) => void;
   setViewport: (viewport: Partial<ViewportState>) => void;
   setActiveBasemap: (basemap: string) => void;
+  setActiveMapId: (id: string | null) => void;
   flyTo: (lng: number, lat: number, zoom?: number) => void;
   fitBounds: (bbox: BBox) => void;
 }
@@ -28,6 +30,8 @@ export const useMapStore = create<MapState>((set, get) => ({
   },
 
   activeBasemap: 'streets',
+
+  activeMapId: null,
 
   /**
    * Store the Mapbox map instance reference.
@@ -49,6 +53,12 @@ export const useMapStore = create<MapState>((set, get) => ({
    * @param basemap - The basemap style ID (e.g. 'streets', 'satellite')
    */
   setActiveBasemap: (basemap) => set({ activeBasemap: basemap }),
+
+  /**
+   * Set the active map ID for multi-map support.
+   * @param id - The map ID to set as active, or null
+   */
+  setActiveMapId: (id) => set({ activeMapId: id }),
 
   /**
    * Animate the map camera to fly to a specific location.

@@ -4,11 +4,19 @@ type RightPanelContent = 'parcel' | 'comp' | 'project' | 'analytics' | null;
 
 type ActiveTool =
   | 'select'
+  | 'polygon-select'
+  | 'draw-rectangle'
+  | 'draw-circle'
   | 'draw-polygon'
   | 'draw-line'
   | 'draw-point'
   | 'measure-distance'
   | 'measure-area'
+  | 'fit-bounds'
+  | 'fullscreen'
+  | 'upload'
+  | 'reset-view'
+  | 'delete'
   | null;
 
 interface UIState {
