@@ -6,6 +6,7 @@ import SidebarPanel from '@/components/map/SidebarPanel';
 import MapToolbarNew from '@/components/map/MapToolbarNew';
 import RightPanel from '@/components/panels/RightPanel';
 import PropertyPanel from '@/components/map/PropertyPanel';
+import MultiSelectBar from '@/components/map/MultiSelectBar';
 import { useUIStore } from '@/lib/stores/ui-store';
 import { useParcelStore } from '@/lib/stores/parcel-store';
 
@@ -45,6 +46,9 @@ export default function HomePage() {
 
       {/* Property Panel - shown when a parcel is selected */}
       {selectedParcel && <PropertyPanel />}
+
+      {/* Multi-select bar - shown during multi-parcel selection */}
+      <MultiSelectBar />
     </div>
   );
 }

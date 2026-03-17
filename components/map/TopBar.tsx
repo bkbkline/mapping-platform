@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase/client';
 import { searchParcels } from '@/lib/queries/parcels';
 import { useMapStore } from '@/lib/stores/map-store';
+import { useLayerStore } from '@/lib/stores/layer-store';
 import { getCenter } from '@/lib/geospatial/utils';
 
 interface SearchResult {
@@ -26,6 +27,9 @@ export default function TopBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const flyTo = useMapStore((s) => s.flyTo);
+  const layers = useLayerStore((s) => s.layers);
+  const toggleLayer = useLayerStore((s) => s.toggleLayer);
+  const parcelsOn = layers['parcels'] ?? false;
 
   /** Run both parcel + geocoding searches */
   const executeSearch = useCallback(async (q: string) => {
@@ -338,6 +342,44 @@ export default function TopBar() {
             </div>
           )}
         </div>
+
+        {/* Parcels Toggle */}
+        <button
+          onClick={() => toggleLayer('parcels')}
+          style={{
+            height: 32,
+            padding: '0 14px',
+            borderRadius: 9999,
+            border: parcelsOn ? '1px solid #2563eb' : '1px solid #d1d5db',
+            background: parcelsOn ? '#2563eb' : '#ffffff',
+            color: parcelsOn ? '#ffffff' : '#4b5563',
+            fontSize: 12,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            transition: 'all 150ms ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+          Parcels: {parcelsOn ? 'On' : 'Off'}
+        </button>
       </div>
 
       {/* Right side */}

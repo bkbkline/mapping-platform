@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMapStore } from '@/lib/stores/map-store';
 import { useLayerStore } from '@/lib/stores/layer-store';
+import { useUIStore } from '@/lib/stores/ui-store';
 import { supabase } from '@/lib/supabase/client';
+import { INDUSTRIAL_ITEMS, type ItemGeometry } from '@/lib/map/itemSets';
+import MapNotesPanel from '@/components/map/MapNotesPanel';
 
 /** Map record from Supabase */
 interface MapRecord {
@@ -97,12 +100,11 @@ const SECTIONS: SectionDef[] = [
   },
   {
     id: 'gallery',
-    label: 'Image Gallery',
+    label: 'Add Items',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="8.5" cy="8.5" r="1.5" />
-        <path d="M21 15l-5-5L5 21" />
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
       </svg>
     ),
   },
@@ -147,6 +149,10 @@ export default function SidebarPanel() {
   const [maps, setMaps] = useState<MapRecord[]>([]);
   const [mapsLoading, setMapsLoading] = useState(false);
 
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
   const router = useRouter();
   const { mapRef, activeBasemap, setActiveBasemap, activeMapId, setActiveMapId } = useMapStore();
   const { layers, toggleLayer } = useLayerStore();
@@ -168,6 +174,34 @@ export default function SidebarPanel() {
   }, [mapsOpen]);
 
   const activeMapName = maps.find((m) => m.id === activeMapId)?.title ?? null;
+  const displayTitle = activeMapName ?? 'Production Map';
+
+  // Focus the title input when editing starts
+  useEffect(() => {
+    if (editingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [editingTitle]);
+
+  const handleTitleClick = () => {
+    setTitleDraft(displayTitle);
+    setEditingTitle(true);
+  };
+
+  const handleTitleSave = async () => {
+    setEditingTitle(false);
+    const trimmed = titleDraft.trim();
+    if (!trimmed || trimmed === displayTitle) return;
+
+    if (activeMapId) {
+      // Update in Supabase and local state
+      await supabase.from('maps').update({ title: trimmed }).eq('id', activeMapId);
+      setMaps((prev) =>
+        prev.map((m) => (m.id === activeMapId ? { ...m, title: trimmed } : m))
+      );
+    }
+  };
 
   const toggleSection = (id: SectionId) => {
     if (id === 'dashboard') {
@@ -231,13 +265,52 @@ export default function SidebarPanel() {
             flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
               <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
               <line x1="8" y1="2" x2="8" y2="18" />
               <line x1="16" y1="6" x2="16" y2="22" />
             </svg>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>Production Map</span>
+            {editingTitle ? (
+              <input
+                ref={titleInputRef}
+                value={titleDraft}
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onBlur={handleTitleSave}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleTitleSave();
+                  if (e.key === 'Escape') setEditingTitle(false);
+                }}
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#111827',
+                  border: '1px solid #2563eb',
+                  borderRadius: 4,
+                  padding: '1px 4px',
+                  outline: 'none',
+                  width: '100%',
+                  fontFamily: 'inherit',
+                  background: '#ffffff',
+                }}
+              />
+            ) : (
+              <span
+                onClick={handleTitleClick}
+                title="Click to rename"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#111827',
+                  cursor: 'text',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {displayTitle}
+              </span>
+            )}
           </div>
           <button
             style={{
@@ -545,6 +618,9 @@ export default function SidebarPanel() {
         </div>
       )}
 
+      {/* Notes Panel */}
+      {!collapsed && <MapNotesPanel />}
+
       {/* Collapse/Expand toggle button at bottom */}
       <button
         onClick={() => setCollapsed((prev) => !prev)}
@@ -802,13 +878,78 @@ function MyItemsContent() {
   );
 }
 
-// ── Gallery Content ─────────────────────────────────────────────────────────
+// ── Add Items Content (was Gallery) ──────────────────────────────────────────
 function GalleryContent() {
+  const { setActiveTool } = useUIStore();
+
+  const geometryToTool = (geometry: ItemGeometry) => {
+    switch (geometry) {
+      case 'point':
+        return 'draw-point' as const;
+      case 'line':
+        return 'draw-line' as const;
+      case 'polygon':
+        return 'draw-polygon' as const;
+    }
+  };
+
   return (
-    <div style={{ padding: '16px 12px' }}>
-      <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center' }}>
-        No images uploaded yet
-      </div>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr 1fr',
+        gap: 6,
+        padding: '10px 12px',
+      }}
+    >
+      {INDUSTRIAL_ITEMS.map((item) => (
+        <button
+          key={item.id}
+          onClick={() => setActiveTool(geometryToTool(item.geometry))}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '6px 4px',
+            border: '1px solid #e5e7eb',
+            borderRadius: 6,
+            background: '#ffffff',
+            cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif',
+          }}
+          title={item.name}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = '#f9fafb';
+            (e.currentTarget as HTMLElement).style.borderColor = '#d1d5db';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = '#ffffff';
+            (e.currentTarget as HTMLElement).style.borderColor = '#e5e7eb';
+          }}
+        >
+          <span
+            style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              background: item.color,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              fontSize: 10,
+              color: '#374151',
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {item.name}
+          </span>
+        </button>
+      ))}
     </div>
   );
 }

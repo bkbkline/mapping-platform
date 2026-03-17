@@ -1,18 +1,24 @@
 import { create } from 'zustand';
 import type { MapRef, ViewportState } from '@/types/map';
-import type { BBox } from '@/types/parcel';
+import type { BBox, Parcel } from '@/types/parcel';
 
 interface MapState {
   mapRef: MapRef;
   viewport: ViewportState;
   activeBasemap: string;
   activeMapId: string | null;
+  selectedParcels: Parcel[];
+  multiSelectActive: boolean;
   setMapRef: (ref: MapRef) => void;
   setViewport: (viewport: Partial<ViewportState>) => void;
   setActiveBasemap: (basemap: string) => void;
   setActiveMapId: (id: string | null) => void;
   flyTo: (lng: number, lat: number, zoom?: number) => void;
   fitBounds: (bbox: BBox) => void;
+  toggleMultiSelect: () => void;
+  addSelectedParcel: (parcel: Parcel) => void;
+  removeSelectedParcel: (id: string) => void;
+  clearSelectedParcels: () => void;
 }
 
 /**
@@ -32,6 +38,9 @@ export const useMapStore = create<MapState>((set, get) => ({
   activeBasemap: 'streets',
 
   activeMapId: null,
+
+  selectedParcels: [],
+  multiSelectActive: false,
 
   /**
    * Store the Mapbox map instance reference.
@@ -92,4 +101,40 @@ export const useMapStore = create<MapState>((set, get) => ({
       );
     }
   },
+
+  /**
+   * Toggle multi-select mode on or off.
+   * Clears selected parcels when turning off.
+   */
+  toggleMultiSelect: () =>
+    set((state) => ({
+      multiSelectActive: !state.multiSelectActive,
+      selectedParcels: !state.multiSelectActive ? state.selectedParcels : [],
+    })),
+
+  /**
+   * Add a parcel to the multi-select list (no duplicates).
+   * @param parcel - The parcel to add
+   */
+  addSelectedParcel: (parcel) =>
+    set((state) => {
+      if (state.selectedParcels.some((p) => p.id === parcel.id)) {
+        return state;
+      }
+      return { selectedParcels: [...state.selectedParcels, parcel] };
+    }),
+
+  /**
+   * Remove a parcel from the multi-select list by ID.
+   * @param id - The parcel ID to remove
+   */
+  removeSelectedParcel: (id) =>
+    set((state) => ({
+      selectedParcels: state.selectedParcels.filter((p) => p.id !== id),
+    })),
+
+  /**
+   * Clear all selected parcels from the multi-select list.
+   */
+  clearSelectedParcels: () => set({ selectedParcels: [] }),
 }));

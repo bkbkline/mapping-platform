@@ -150,6 +150,13 @@ export default function PropertyPanel() {
       <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
         {activeTab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* Status badge */}
+            <StatusBadge
+              status={
+                (selectedParcel.raw_attributes?.status as string) ?? 'Active'
+              }
+            />
+
             {/* Stats grid */}
             <div
               style={{
@@ -162,28 +169,27 @@ export default function PropertyPanel() {
               <StatCard label="Sq Ft" value={sqft != null ? sqft.toLocaleString() : 'N/A'} />
               <StatCard label="Zoning" value={selectedParcel.zoning ?? 'N/A'} />
               <StatCard
-                label="Status"
+                label="Assessed Value"
                 value={
-                  (selectedParcel.raw_attributes?.status as string) ?? 'Active'
+                  selectedParcel.assessed_value != null
+                    ? `$${selectedParcel.assessed_value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+                    : 'N/A'
                 }
               />
             </div>
 
             {/* Detail rows */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              <DetailRow label="Parcel ID" value={selectedParcel.id} />
               <DetailRow label="Owner" value={selectedParcel.owner_name ?? 'N/A'} />
+              <DetailRow
+                label="Mailing Address"
+                value={selectedParcel.owner_mailing_address ?? 'N/A'}
+              />
               <DetailRow label="Land Use" value={selectedParcel.land_use_code ?? 'N/A'} />
               <DetailRow
                 label="Zoning Desc"
                 value={selectedParcel.zoning_description ?? 'N/A'}
-              />
-              <DetailRow
-                label="Assessed Value"
-                value={
-                  selectedParcel.assessed_value != null
-                    ? `$${selectedParcel.assessed_value.toLocaleString()}`
-                    : 'N/A'
-                }
               />
               <DetailRow
                 label="Address"
@@ -326,6 +332,46 @@ function StatCard({ label, value }: { label: string; value: string }) {
       >
         {value}
       </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const normalized = status.toLowerCase();
+  let bg = 'rgba(34, 197, 94, 0.15)';
+  let color = '#4ade80';
+  if (normalized === 'inactive' || normalized === 'sold') {
+    bg = 'rgba(239, 68, 68, 0.15)';
+    color = '#f87171';
+  } else if (normalized === 'pending' || normalized === 'under review') {
+    bg = 'rgba(234, 179, 8, 0.15)';
+    color = '#facc15';
+  }
+
+  return (
+    <div
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 10px',
+        borderRadius: 9999,
+        background: bg,
+        fontSize: 12,
+        fontWeight: 600,
+        color,
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: '50%',
+          background: color,
+          flexShrink: 0,
+        }}
+      />
+      {status}
     </div>
   );
 }
